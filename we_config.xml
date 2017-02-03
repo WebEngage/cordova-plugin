@@ -1,0 +1,11 @@
+<config>
+    <licenseCode>~2024c585</licenseCode>
+    <debug>true</debug>
+    <ios>
+    </ios>
+    <android>
+        <packageName>com.webengage.cordovatest</packageName>
+        <pushProjectNumber>299770535209</pushProjectNumber>
+        <autoPushRegister>true</autoPushRegister>
+    </android>
+</config>

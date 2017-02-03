@@ -33,4 +33,44 @@
 		<header-file src="src/ios/AppDelegate+WebEngagePlugin.h" />
 		<source-file src="src/ios/AppDelegate+WebEngagePlugin.m" />
 	</platform>
+    
+    <platform name="android">
+        
+        <config-file target="config.xml" parent="/*">
+            <feature name="WebEngagePlugin">
+                <param name="android-package" value="com.webengage.cordova.WebEngagePlugin" />
+            </feature>
+        </config-file>
+        <config-file target="AndroidManifest.xml" parent="/manifest">
+            <uses-permission android:name="android.permission.INTERNET"/>
+            <uses-permission android:name="android.permission.WAKE_LOCK" />
+        </config-file>
+        
+        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            <activity android:name="com.webengage.sdk.android.actions.render.WebEngageActivity"
+            android:theme="@android:style/Theme.Translucent"
+            android:configChanges="orientation|screenSize"
+            />
+            <service android:name="com.webengage.sdk.android.ExecutorService" />
+            <service android:name="com.webengage.sdk.android.EventLogService" />
+            
+            
+            <receiver
+                android:name="com.webengage.sdk.android.InstallTracker"
+                android:exported="true">
+                <intent-filter>
+                    <action android:name="com.android.vending.INSTALL_REFERRER" />
+                </intent-filter>
+            </receiver>
+        </config-file>
+
+        <source-file src="src/android/WebEngagePlugin.java" target-dir="src/com/webengage/cordova/"/>
+        
+        <framework src="src/android/WebEngagePlugin.gradle" custom="true" type="gradleReference"/>
+        
+    </platform>
+    
+    <hook src="hooks/we_config.js" type="after_plugin_add" />
+    <hook src="hooks/we_config.js" type="after_prepare" />
+    
 </plugin>
