@@ -3,6 +3,7 @@
     <debug>true</debug>
     <ios>
     	<backgroundLocation>true</backgroundLocation>
+        <apnsAutoRegister>true</apnsAutoRegister>
     	<WEGEnableLocationAuthorizationRequest>NO</WEGEnableLocationAuthorizationRequest>
     	<NSLocationAlwaysUsageDescription>We assure WE will be responsible..</NSLocationAlwaysUsageDescription>
     </ios>

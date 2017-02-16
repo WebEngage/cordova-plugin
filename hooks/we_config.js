@@ -287,6 +287,18 @@ function updateInfoPList(infoPlistFileData, context) {
 	} else {
 		infoPlistObj['WEGLogLevel'] = 'DEFAULT';
 	}
+
+	var apnsAutoRegister = getIOSPropertyFromWEConfig('apnsAutoRegister', parsedConfig);
+
+	if (apnsAutoRegister !=  null && typeof apnsAutoRegister === 'string') {
+		apnsAutoRegister = apnsAutoRegister !== 'false';
+	}
+
+	if (apnsAutoRegister != null && typeof apnsAutoRegister === 'boolean') {
+		infoPlistObj['WEGApnsAutoRegister'] = apnsAutoRegister;
+	} else {
+		infoPlistObj['WEGApnsAutoRegister'] = true;
+	}
 			    								
 	//Adding UIBackgroundModes
 	var uiBackgroundModes = infoPlistObj['UIBackgroundModes'];
