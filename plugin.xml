@@ -17,10 +17,6 @@
 			</feature>
 		</config-file>
 
-		<config-file parent="WEGLicenseCode" target="*Info.plist">
-			<string>~2024c585</string>
-		</config-file>
-
 		<config-file parent="UIBackgroundModes" target="*Info.plist">
 			<array>
 				<string>fetch</string>

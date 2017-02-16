@@ -1,14 +1,25 @@
 var fs = require('fs');
 var xml2js = require('xml2js');
+var debugLogEnabled = false;
+var plist = require('plist');
 
-console.log('hook received');
+
+function debugLog(text) {
+	if (debugLogEnabled) {
+		console.log(text);
+	}
+} 
+
+debugLog('Executing WebEngage Hook');
 
 var androidMetaDataKeys = ["com.webengage.sdk.android.key", "com.webengage.sdk.android.debug", "com.webengage.sdk.android.project_number", "com.webengage.sdk.android.location_tracking", "com.webengage.sdk.android.auto_gcm_registration", "com.webengage.sdk.android.environment", "com.webengage.sdk.android.alternate_interface_id"];
 var androidReceivers = ["com.webengage.sdk.android.WebEngageReceiver"];
 
 
 try {
-	var config = fs.readFileSync('plugins/cordova-plugin-com-webengage/we_config.xml').toString();
+
+	we_config = fs.readFileSync('plugins/cordova-plugin-com-webengage/we_config.xml').toString();
+
 }
 catch (e) {
 	process.stdout.write(e);
@@ -193,6 +204,183 @@ function directoryExists(path)	{
 
 function performiOSOperations(parsedConfig)	{
 
+	debugLog("Reading App's config.xml for App Name");
+	fs.readFile("config.xml", function(errFile, appConfigResult) {
+
+		if (errFile) {
+			console.log(errFile);
+		} else {
+			debugLog("Parsing App's config.xml");
+			xml2js.parseString(appConfigResult, function(errParsing, appConfig) {
+
+				if(errParsing) {
+					console.log(errParsing);
+				} else {
+					var name = appConfig.widget.name;
+
+					if (name) {
+						debugLog("App's Name Found in config.xml: "+ name);
+						var iOSDir = "platforms/ios/"+name;
+						if ( directoryExists(iOSDir) ) {
+							
+							debugLog("Searching for Info.plist file in App directory");
+							fs.readdir(iOSDir, function(err, files) {
+    							
+    							files.filter(function(file) { 
+    								return file.endsWith("Info.plist");
+    							}).forEach(function(file) { 
+
+    								debugLog("Editing "+file+" for WebEngage's SDK configuration");
+    								
+									fs.readFile(iOSDir+"/"+file, 'utf8', function(err, infoPlistFileData) {
+    									if (err) {
+											console.log("Error in opening "+file+ " file");
+										} else {
+    										updateInfoPList(infoPlistFileData, {
+    											"iOSDirectory": iOSDir,
+    											"fileName": file,
+    											"config": parsedConfig
+    										});
+    									}
+    								});
+								});
+							});
+
+						} else {
+							console.log("iOS project directory not found");
+						}
+					}
+				}
+			});
+		}	
+
+	});
+
+}
+
+function updateInfoPList(infoPlistFileData, context) {
+
+	var fileName = context['fileName'];
+	var iOSDir = context['iOSDirectory'];
+	var parsedConfig = context['config'];
+
+	debugLog(fileName + " data:\n", infoPlistFileData);
+	var infoPlistObj = plist.parse(infoPlistFileData);
+
+
+	var licenseCode = getGlobalPropertyFromWeConfig('licenseCode', parsedConfig);
+	if (licenseCode && isString(licenseCode)) {
+		infoPlistObj['WEGLicenseCode'] = licenseCode;
+	} else {
+		console.log("License Code not found");
+			    									//TODO: Possibly break the flow here
+	}
+
+	var debug = getGlobalPropertyFromWeConfig('debug', parsedConfig);
+
+	if (debug !=  null && typeof debug === 'string') {
+		debug = debug === 'true';
+	}
+
+	if (debug != null && typeof debug === 'boolean') {
+		infoPlistObj['WEGLogLevel'] = debug?'VERBOSE':'DEFAULT';
+	} else {
+		infoPlistObj['WEGLogLevel'] = 'DEFAULT';
+	}
+			    								
+	//Adding UIBackgroundModes
+	var uiBackgroundModes = infoPlistObj['UIBackgroundModes'];
+
+	var backgroundLocationEnabled = getIOSPropertyFromWEConfig(
+									'backgroundLocation', parsedConfig) || false;
+
+	if (isString(backgroundLocationEnabled)) {
+		backgroundLocationEnabled = backgroundLocationEnabled === 'true';
+	}
+			    								
+	if (uiBackgroundModes) {
+
+		var fetchEntry = false;
+		var remoteNotificationEntry = false;
+		var locationEntry = false;
+
+		uiBackgroundModes.forEach(function(value) {
+			if (value === 'fetch') {
+			    fetchEntry = true;
+			} else if (value === 'remote-notification') {
+				remoteNotificationEntry = true;
+			} else if(value === 'location') {
+			    locationEntry = true;
+			}
+		});
+
+		if (!fetchEntry) {
+			uiBackgroundModes.push('fetch');
+		}
+
+		if (!remoteNotificationEntry) {
+			uiBackgroundModes.push('remote-notification');
+		}
+
+		if (!locationEntry && backgroundLocationEnabled) {
+			uiBackgroundModes.push('location');
+		}
+
+
+	} else {
+
+		uiBackgroundModes = ['fetch', 'remote-notification'];
+		if (backgroundLocationEnabled) {
+			uiBackgroundModes.push('location');
+		}
+
+	}
+
+	infoPlistObj['UIBackgroundModes'] = uiBackgroundModes;
+	//UIBackgroundProperties Added
+
+	//Updating WEGEnableLocationAuthorizationRequest
+	var enableLocationAuthorizationRequest = getIOSPropertyFromWEConfig(
+			    									'WEGEnableLocationAuthorizationRequest', 
+			    									parsedConfig) 
+			    								|| "NO";
+
+	infoPlistObj['WEGEnableLocationAuthorizationRequest']
+			    								= enableLocationAuthorizationRequest;
+	//WEGEnableLocationAuthorizationRequest updated
+
+	var nsLocationAlwaysUsageDescription = getIOSPropertyFromWEConfig(
+			    							'NSLocationAlwaysUsageDescription', 
+			    							parsedConfig);
+
+	var nsLocationWhenInUseUsageDescription = getIOSPropertyFromWEConfig(
+			    								'NSLocationWhenInUseUsageDescription', 
+			    								parsedConfig);
+
+	if (nsLocationAlwaysUsageDescription) {
+		infoPlistObj['NSLocationAlwaysUsageDescription'] 
+		= nsLocationAlwaysUsageDescription;
+	}
+
+	if (nsLocationWhenInUseUsageDescription) {
+		infoPlistObj['NSLocationWhenInUseUsageDescription'] 
+		= nsLocationWhenInUseUsageDescription;
+	}
+
+	var infoPlistFileContent = plist.build(infoPlistObj);
+
+	debugLog("Updating "+fileName+" with following configuration: \n"+
+		JSON.stringify(infoPlistObj, null, 2));
+
+	fs.writeFile(iOSDir+"/"+fileName, infoPlistFileContent, function(err) {
+
+		if (err) {
+			console.log('Error in updating '+ fileName +' file');
+		} else {
+			console.log(fileName + ' file updated for WebEngage SDK');
+		}
+	});
+
 }
 
 function performedAndroidOperations(parsedConfig) {
@@ -228,22 +416,74 @@ function performedAndroidOperations(parsedConfig) {
 
 
 
-xml2js.parseString(config, function(err, result){
+xml2js.parseString(we_config, function(err, result){
 	
 	if(err)	{
 		console.log(err);
-	}
-	else {
+	} else {
 		if(directoryExists('platforms/android')){
-			androidPushPermissions = ["com.google.android.c2dm.permission.RECEIVE", result.config.android[0].packageName[0] + '.permission.C2D_MESSAGE']
+			androidPushPermissions = ["com.google.android.c2dm.permission.RECEIVE", 
+										result.config.android[0].packageName[0] + '.permission.C2D_MESSAGE'];
 			performedAndroidOperations(result.config);
 		}
 
-		if(directoryExists('platforms/ios')){
+		if(directoryExists('platforms/ios')) {
+
+			debugLog("Preparing iOS build configuration");
 			performiOSOperations(result.config);
+		} else {
+			console.log("ios platform directory is not present");
 		}
 	}
 });
+
+function isString(value) {
+	return value instanceof String || typeof value === 'string';
+}
+
+function getGlobalPropertyFromWeConfig(property, parsedConfig) {
+	
+	var propertyValue = null;
+	if (parsedConfig[property] 
+    	&& parsedConfig[property] instanceof Array 
+    	&& parsedConfig[property].length > 0) {
+    
+    	propertyValue = parsedConfig[property][0];
+
+    } else if (typeof parsedConfig[property] !== 'undefined' && parsedConfig[property] != null) {
+    
+    	propertyValue = parsedConfig[property];
+    }
+	return propertyValue;
+}
+
+function getIOSPropertyFromWEConfig(property, parsedConfig) {
+
+	var propertyValue = null;
+
+	var iosNode = null;
+	if (parsedConfig.ios && parsedConfig.ios instanceof Array && parsedConfig.ios.length > 0) {
+		iosNode = parsedConfig.ios[0];
+	} else if(parsedConfig.ios && (typeof parsedConfig.ios === 'object')) {
+		iosNode = parsedConfig.ios;
+	}
+
+	if (iosNode 
+    	&& iosNode[property]
+    	&& iosNode[property] instanceof Array
+    	&& iosNode[property].length > 0) {
+
+    	if (typeof iosNode[property][0] !== 'undefined' && iosNode[property][0] != null) {
+    		propertyValue = iosNode[property][0];
+    		
+    	}
+
+    } else if(iosNode && iosNode[property] !== 'undefined' && iosNode[property] != null) {
+    	propertyValue = iosNode[property];
+    }
+
+    return propertyValue;
+}
 
 
 
