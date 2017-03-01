@@ -1,6 +1,6 @@
 var fs = require('fs');
 var xml2js = require('xml2js');
-var debugLogEnabled = true;
+var debugLogEnabled = false;
 var plist = require('plist');
 
 
