@@ -12,18 +12,10 @@ function debugLog(text) {
 
 debugLog('Executing WebEngage Hook');
 
-var androidMetaDataKeys = ["com.webengage.sdk.android.key", "com.webengage.sdk.android.debug", "com.webengage.sdk.android.project_number", "com.webengage.sdk.android.location_tracking", "com.webengage.sdk.android.auto_gcm_registration", "com.webengage.sdk.android.environment", "com.webengage.sdk.android.alternate_interface_id"];
+var androidMetaDataKeys = ["com.webengage.sdk.android.key", "com.webengage.sdk.android.debug", "com.webengage.sdk.android.project_number", "com.webengage.sdk.android.location_tracking", "com.webengage.sdk.android.auto_gcm_registration", "com.webengage.sdk.android.environment", "com.webengage.sdk.android.alternate_interface_id","com.webengage.sdk.android.small_icon", "com.webengage.sdk.android.large_icon", "com.webengage.sdk.android.accent_color"];
 var androidReceivers = ["com.webengage.sdk.android.WebEngageReceiver"];
 
 
-try {
-
-	we_config = fs.readFileSync('plugins/cordova-plugin-com-webengage/we_config.xml').toString();
-
-}
-catch (e) {
-	process.stdout.write(e);
-}
 
 
 var androidPushPermissions = [];
@@ -35,39 +27,72 @@ function metaDataFilter(metaData)	{
 	return !(metaData && metaData['$'] && androidMetaDataKeys.indexOf(metaData['$']['android:name']) > -1);
 };
 
-function contructNameValueTag(name, value){
+function constructNameValueTag(name, value){
 	return { "$": { "android:name":name, "android:value":value} };
 }
 
-function addMetaDatas(manifest, config) {
-	if(manifest && manifest.application) {
+function constructNameResourceTag(name, resource) {
+	return { "$": { "android:name":name, "android:resource":resource} };
+}
+
+function checkValidXml2jsNode(node) {
+	return node && node instanceof Array && node.length > 0 ;
+}
+
+function addMetaData(manifest, config) {
+	if(checkValidXml2jsNode(manifest.application)) {
 		console.log("Adding meta datas");
-		var metaDatas = manifest.application[0]['meta-data'];
-		metaDatas = metaDatas ? metaDatas.filter(metaDataFilter) : [];
-		if(config.licenseCode) {
-			metaDatas.push(contructNameValueTag(androidMetaDataKeys[0], config.licenseCode[0]));
+		var metaData = manifest.application[0]['meta-data'];
+		metaData = (checkValidXml2jsNode(metaData)) ? metaData.filter(metaDataFilter) : [];
+		var licenseCode = getGlobalPropertyFromWEConfig('licenseCode', config);
+		if(isString(licenseCode)) {
+			metaData.push(constructNameValueTag(androidMetaDataKeys[0], licenseCode));
 		}
-		if(config.debug) {
-			metaDatas.push(contructNameValueTag(androidMetaDataKeys[1], config.debug[0]));
+
+		var debug = getGlobalPropertyFromWEConfig('debug', config);
+		if(isString(debug)) {
+			metaData.push(constructNameValueTag(androidMetaDataKeys[1], debug));
 		}
-		if(config.android[0]) {
-			if(config.android[0].pushProjectNumber) {
-				metaDatas.push(contructNameValueTag(androidMetaDataKeys[2], '$' + config.android[0].pushProjectNumber[0]));
-			}
-			if(config.android[0].locationTracking) {
-				metaDatas.push(contructNameValueTag(androidMetaDataKeys[3], config.android[0].locationTracking[0]));
-			}
-			if(config.android[0].autoPushRegister) {
-				metaDatas.push(contructNameValueTag(androidMetaDataKeys[4], config.android[0].autoPushRegister[0]));
-			}
-			if(config.android[0].environment) {
-				metaDatas.push(contructNameValueTag(androidMetaDataKeys[5], config.android[0].environment[0]));
-			}
-			if(config.android[0].alternateInterfaceId) {
-				metaDatas.push(contructNameValueTag(androidMetaDataKeys[6], config.android[0].alternateInterfaceId[0]));
-			}
+		var pushProjectNumber = getPlatformPropertyFromWEConfig('android', 'pushProjectNumber', config);
+		if(isString(pushProjectNumber)) {
+			metaData.push(constructNameValueTag(androidMetaDataKeys[2], '$' + pushProjectNumber));
 		}
-		manifest.application[0]['meta-data'] = metaDatas;
+		var locationTracking = getPlatformPropertyFromWEConfig('android', 'lcoationTracking', config);	
+		if(isString(locationTracking)) {
+			metaData.push(constructNameValueTag(androidMetaDataKeys[3], locationTracking));
+		}
+
+		var autoPushRegister = getPlatformPropertyFromWEConfig('android', 'autoPushRegister', config);
+		if(isString(autoPushRegister)) {
+			metaData.push(constructNameValueTag(androidMetaDataKeys[4], autoPushRegister));
+		}
+
+		var environment = getPlatformPropertyFromWEConfig('android', 'environment', config);
+		if(isString(environment)) {
+			metaData.push(constructNameValueTag(androidMetaDataKeys[5], environment));
+		}
+
+		var alternateInterfaceId = getPlatformPropertyFromWEConfig('android', 'alternateInterfaceId', config);
+		if(isString(alternateInterfaceId)) {
+			metaData.push(constructNameValueTag(androidMetaDataKeys[6], alternateInterfaceId));
+		}
+
+		var pushSmallIcon = getPlatformPropertyFromWEConfig('android', 'pushSmallIcon', config);
+		if(isString(pushSmallIcon)) {
+			metaData.push(constructNameResourceTag(androidMetaDataKeys[7], pushSmallIcon));
+		}
+
+		var pushLargeIcon = getPlatformPropertyFromWEConfig('android', 'pushLargeIcon', config);
+		if(isString(pushLargeIcon)) {
+			metaData.push(constructNameResourceTag(androidMetaDataKeys[8], pushLargeIcon));
+		}
+
+		var pushAccentColor = getPlatformPropertyFromWEConfig('android', 'pushAccentColor', config);
+		if(isString(pushAccentColor)) {
+			metaData.push(constructNameValueTag(androidMetaDataKeys[9], pushAccentColor));
+		}
+		
+		manifest.application[0]['meta-data'] = metaData;
 		console.log("meta data opeartions completed");
 	}
 	return manifest;
@@ -79,58 +104,59 @@ function receiverFilter(receiver) {
 }
 
 function addReceivers(manifest, config) {
-	if(manifest && manifest.application) {
+	if(checkValidXml2jsNode(manifest.application)) {
 		console.log("Adding Receivers");
 		var receivers = manifest.application[0].receiver;
-		receivers = receivers ? receivers.filter(receiverFilter) : [];
+		receivers = checkValidXml2jsNode(receivers) ? receivers.filter(receiverFilter) : [];
 		
 
-		if(config.android[0]) {
-			var shouldDoAutoRegistration = config.android[0].autoPushRegister ? config.android[0].autoPushRegister[0]  === "true" : true;
-			if(shouldDoAutoRegistration) {
-				receivers.push({	
-					"$" :{ 
-						"android:name": androidReceivers[0], 
-						"android:permission":"com.google.android.c2dm.permission.SEND"
-					} , 
-					"intent-filter":[{
-						"action":[{
-							"$":{
-								"android:name":"com.google.android.c2dm.intent.RECEIVE"
-							}
-						},{
-							"$":{
-								"android:name":"com.webengage.sdk.android.intent.ACTION"
-							}
-						}],
-						"category":[{
-							"$":{
-								"android:name":config.android[0].packageName
-							}
-						}]
+		
+		var shouldDoAutoRegistration = getPlatformPropertyFromWEConfig('android', 'autoPushRegister', config);
+		shouldDoAutoRegistration = isString(shouldDoAutoRegistration) ? (shouldDoAutoRegistration !== 'false') : true;
+		if(shouldDoAutoRegistration) {
+			receivers.push({	
+				"$" :{ 
+					"android:name": androidReceivers[0], 
+					"android:permission":"com.google.android.c2dm.permission.SEND"
+				} , 
+				"intent-filter":[{
+					"action":[{
+						"$":{
+							"android:name":"com.google.android.c2dm.intent.RECEIVE"
+						}
+					},{
+						"$":{
+							"android:name":"com.webengage.sdk.android.intent.ACTION"
+						}
+					}],
+					"category":[{
+						"$":{
+							"android:name":getPlatformPropertyFromWEConfig('android', 'packageName', config)
+						}
 					}]
-				});
-			}
-			else   {
-				receivers.push({
-					"$":{
-						"android:name":androidReceivers[0]
-					},
-					"intent-filter":[{
-						"action":[{
-							"$":{
-								"android:name":"com.webengage.sdk.android.intent.ACTION"
-							}
-						}],
-						"category":[{
-							"$":{
-								"android:name":config.android[0].packageName
-							}
-						}]
-					}]
-				});
-			}
+				}]
+			});
 		}
+		else   {
+			receivers.push({
+				"$":{
+					"android:name":androidReceivers[0]
+				},
+				"intent-filter":[{
+					"action":[{
+						"$":{
+							"android:name":"com.webengage.sdk.android.intent.ACTION"
+						}
+					}],
+					"category":[{
+						"$":{
+							"android:name":getPlatformPropertyFromWEConfig('android', 'packageName', config)
+						}
+					}]
+				}]
+			});
+		}
+		
 
 		manifest.application[0].receiver = receivers;
 		console.log("Receivers operations completed");
@@ -152,42 +178,44 @@ function addPermissions(manifest, config) {
 		console.log("Adding Permissions");
 		var usesPermissions = manifest['uses-permission'];
 		var permisions = manifest['permission'];
-		if(config.android[0]) {
-			var shouldDoAutoRegistration = config.android[0].autoPushRegister ? config.android[0].autoPushRegister[0]  === "true" : true;
-			if(shouldDoAutoRegistration) {
-				usesPermissions = usesPermissions ? usesPermissions.filter(pushPermissionFilter) : [];
-				permisions = (permisions) ? permisions.filter(pushPermissionFilter) : [];
-				usesPermissions.push({
-					"$":{
-						"android:name":androidPushPermissions[0]
-					}
-				});
-				usesPermissions.push({
-					"$":{
-						"android:name":androidPushPermissions[1]
-					}
-				});
-				permisions.push({
-					"$":{
-						"android:name":androidPushPermissions[1],
-						"android:protectionLevel":"signature"
-					}
-				});
-				manifest['permission'] = permisions;
+		
+		var shouldDoAutoRegistration = getPlatformPropertyFromWEConfig('android', 'autoPushRegister', config);
+		shouldDoAutoRegistration = isString(shouldDoAutoRegistration) ? (shouldDoAutoRegistration !== 'false') : true;
+		if(shouldDoAutoRegistration) {
+			usesPermissions = checkValidXml2jsNode(usesPermissions) ? usesPermissions.filter(pushPermissionFilter) : [];
+			permisions = checkValidXml2jsNode(permisions) ? permisions.filter(pushPermissionFilter) : [];
+			usesPermissions.push({
+				"$":{
+					"android:name":androidPushPermissions[0]
+				}
+			});
+			usesPermissions.push({
+				"$":{
+					"android:name":androidPushPermissions[1]
+				}
+			});
+			permisions.push({
+				"$":{
+					"android:name":androidPushPermissions[1],
+					"android:protectionLevel":"signature"
+				}
+			});
+			manifest['permission'] = permisions;
 
-			}
-			var shoudlDoLocationTracking = config.android[0].locationTracking ? config.android[0].locationTracking[0]  === "true" : true;
-			if(shoudlDoLocationTracking) {
-				usesPermissions = (usesPermissions) ? usesPermissions.filter(locationPermissionFilter) : [];
-				usesPermissions.push({
-					"$":{
-						"android:name":"android.permission.ACCESS_FINE_LOCATION"
-					}
-				});
-			}
-			manifest['uses-permission'] = usesPermissions;
-			console.log("permissions opeartion completed");
 		}
+		var shouldDoLocationTracking = getPlatformPropertyFromWEConfig('android', 'locationTracking', config);
+		shouldDoLocationTracking = isString(shouldDoLocationTracking) ? (shouldDoLocationTracking !== 'false') : true;
+		if(shouldDoLocationTracking) {
+			usesPermissions = checkValidXml2jsNode(usesPermissions) ? usesPermissions.filter(locationPermissionFilter) : [];
+			usesPermissions.push({
+				"$":{
+					"android:name":"android.permission.ACCESS_FINE_LOCATION"
+				}
+			});
+		}
+		manifest['uses-permission'] = usesPermissions;
+		console.log("permissions opeartion completed");
+		
 
 	}
 	return manifest;
@@ -270,7 +298,7 @@ function updateInfoPList(infoPlistFileData, context) {
 	debugLog("Parsed "+fileName+ "\n:" + JSON.stringify(infoPlistObj));
 
 
-	var licenseCode = getGlobalPropertyFromWeConfig('licenseCode', parsedConfig);
+	var licenseCode = getGlobalPropertyFromWEConfig('licenseCode', parsedConfig);
 	if (licenseCode && isString(licenseCode)) {
 		infoPlistObj['WEGLicenseCode'] = licenseCode;
 	} else {
@@ -278,7 +306,7 @@ function updateInfoPList(infoPlistFileData, context) {
 			    									//TODO: Possibly break the flow here
 	}
 
-	var debug = getGlobalPropertyFromWeConfig('debug', parsedConfig);
+	var debug = getGlobalPropertyFromWEConfig('debug', parsedConfig);
 
 	if (debug !=  null && typeof debug === 'string') {
 		debug = debug === 'true';
@@ -290,7 +318,7 @@ function updateInfoPList(infoPlistFileData, context) {
 		infoPlistObj['WEGLogLevel'] = 'DEFAULT';
 	}
 
-	var apnsAutoRegister = getIOSPropertyFromWEConfig('apnsAutoRegister', parsedConfig);
+	var apnsAutoRegister = getPlatformPropertyFromWEConfig('ios', 'apnsAutoRegister', parsedConfig);
 
 	if (apnsAutoRegister !=  null && typeof apnsAutoRegister === 'string') {
 		apnsAutoRegister = apnsAutoRegister !== 'false';
@@ -305,8 +333,7 @@ function updateInfoPList(infoPlistFileData, context) {
 	//Adding UIBackgroundModes
 	var uiBackgroundModes = infoPlistObj['UIBackgroundModes'];
 
-	var backgroundLocationEnabled = getIOSPropertyFromWEConfig(
-									'backgroundLocation', parsedConfig) || false;
+	var backgroundLocationEnabled = getPlatformPropertyFromWEConfig('ios', 'backgroundLocation', parsedConfig) || false;
 
 	if (isString(backgroundLocationEnabled)) {
 		backgroundLocationEnabled = backgroundLocationEnabled === 'true';
@@ -354,20 +381,17 @@ function updateInfoPList(infoPlistFileData, context) {
 	//UIBackgroundProperties Added
 
 	//Updating WEGEnableLocationAuthorizationRequest
-	var enableLocationAuthorizationRequest = getIOSPropertyFromWEConfig(
-			    									'WEGEnableLocationAuthorizationRequest', 
-			    									parsedConfig) 
-			    								|| "NO";
+	var enableLocationAuthorizationRequest = getPlatformPropertyFromWEConfig('ios', 'WEGEnableLocationAuthorizationRequest', parsedConfig) || "NO";
 
 	infoPlistObj['WEGEnableLocationAuthorizationRequest']
 			    								= enableLocationAuthorizationRequest;
 	//WEGEnableLocationAuthorizationRequest updated
 
-	var nsLocationAlwaysUsageDescription = getIOSPropertyFromWEConfig(
+	var nsLocationAlwaysUsageDescription = getPlatformPropertyFromWEConfig('ios',
 			    							'NSLocationAlwaysUsageDescription', 
 			    							parsedConfig);
 
-	var nsLocationWhenInUseUsageDescription = getIOSPropertyFromWEConfig(
+	var nsLocationWhenInUseUsageDescription = getPlatformPropertyFromWEConfig('ios',
 			    								'NSLocationWhenInUseUsageDescription', 
 			    								parsedConfig);
 
@@ -406,69 +430,45 @@ function updateInfoPList(infoPlistFileData, context) {
 }
 
 function performedAndroidOperations(parsedConfig) {
-	try {
-		var androidManifest = fs.readFileSync('platforms/android/AndroidManifest.xml').toString();
-	}
-	catch (e) {
-		process.stdout.write(e);
-		return;
-	}
-	xml2js.parseString(androidManifest, function(err, result){
-			
-		if(err) {
-			console.log(err);
-		}
-		else {
-			console.log("Starting Android Operations");
-			result.manifest = addMetaDatas(result.manifest, parsedConfig);
-			result.manifest = addReceivers(result.manifest, parsedConfig);
-			result.manifest = addPermissions(result.manifest, parsedConfig);
-			var xml = new xml2js.Builder().buildObject(result);
-			try {
-				fs.writeFileSync('platforms/android/AndroidManifest.xml', xml);
-			}
-			catch (e) {
-				process.stdout.write(e);
-			}
+	
+	fs.readFile('platforms/android/AndroidManifest.xml', function(err, manifestFile){
 
+		if(err){
+			console.log(err);
+		} else {
+			xml2js.parseString(manifestFile.toString(), function(err, result){
+			
+				if(err) {
+					console.log(err);
+				} else {
+					console.log("Starting Android Operations");
+					result.manifest = addMetaData(result.manifest, parsedConfig);
+					result.manifest = addReceivers(result.manifest, parsedConfig);
+					result.manifest = addPermissions(result.manifest, parsedConfig);
+					var xml = new xml2js.Builder().buildObject(result);
+					try {
+						fs.writeFileSync('platforms/android/AndroidManifest.xml', xml);
+					}
+					catch (e) {
+						process.stdout.write(e);
+					}
+				}
+			});
 		}
+
 	});
 }
 
 
 
-
-xml2js.parseString(we_config, function(err, result){
-	
-	if(err)	{
-		console.log(err);
-	} else {
-		if(directoryExists('platforms/android')){
-			androidPushPermissions = ["com.google.android.c2dm.permission.RECEIVE", 
-										result.config.android[0].packageName[0] + '.permission.C2D_MESSAGE'];
-			performedAndroidOperations(result.config);
-		}
-
-		if(directoryExists('platforms/ios')) {
-
-			debugLog("Preparing iOS build configuration");
-			performiOSOperations(result.config);
-		} else {
-			console.log("ios platform directory is not present");
-		}
-	}
-});
-
 function isString(value) {
 	return value instanceof String || typeof value === 'string';
 }
 
-function getGlobalPropertyFromWeConfig(property, parsedConfig) {
+function getGlobalPropertyFromWEConfig(property, parsedConfig) {
 	
 	var propertyValue = null;
-	if (parsedConfig[property] 
-    	&& parsedConfig[property] instanceof Array 
-    	&& parsedConfig[property].length > 0) {
+	if (checkValidXml2jsNode(parsedConfig[property])) {
     
     	propertyValue = parsedConfig[property][0];
 
@@ -479,33 +479,59 @@ function getGlobalPropertyFromWeConfig(property, parsedConfig) {
 	return propertyValue;
 }
 
-function getIOSPropertyFromWEConfig(property, parsedConfig) {
+function getPlatformPropertyFromWEConfig(platform, property, parsedConfig) {
 
 	var propertyValue = null;
 
-	var iosNode = null;
-	if (parsedConfig.ios && parsedConfig.ios instanceof Array && parsedConfig.ios.length > 0) {
-		iosNode = parsedConfig.ios[0];
-	} else if(parsedConfig.ios && (typeof parsedConfig.ios === 'object')) {
-		iosNode = parsedConfig.ios;
+	var platformNode = null;
+	if (parsedConfig[platform] && parsedConfig[platform] instanceof Array && parsedConfig[platform].length > 0) {
+		platformNode = parsedConfig[platform][0];
+	} else if(parsedConfig[platform] && (typeof parsedConfig[platform] === 'object')) {
+		platformNode = parsedConfig[platform];
 	}
 
-	if (iosNode 
-    	&& iosNode[property]
-    	&& iosNode[property] instanceof Array
-    	&& iosNode[property].length > 0) {
+	if (platformNode 
+    	&& platformNode[property]
+    	&& platformNode[property] instanceof Array
+    	&& platformNode[property].length > 0) {
 
-    	if (typeof iosNode[property][0] !== 'undefined' && iosNode[property][0] != null) {
-    		propertyValue = iosNode[property][0];
+    	if (typeof platformNode[property][0] !== 'undefined' && platformNode[property][0] != null) {
+    		propertyValue = platformNode[property][0];
     		
     	}
 
-    } else if(iosNode && iosNode[property] !== 'undefined' && iosNode[property] != null) {
-    	propertyValue = iosNode[property];
+    } else if(platformNode && platformNode[property] !== 'undefined' && platformNode[property] != null) {
+    	propertyValue = platformNode[property];
     }
 
     return propertyValue;
 }
+
+
+fs.readFile('plugins/cordova-plugin-com-webengage/we_config.xml', function(errFile, weConfig){
+	if(errFile) {
+		console.log(errFile);
+	} else {
+		xml2js.parseString(weConfig.toString(), function(err, result){
+			if(err)	{
+				console.log(err);
+			} else {
+				if(directoryExists('platforms/android')){
+					androidPushPermissions = ["com.google.android.c2dm.permission.RECEIVE", getPlatformPropertyFromWEConfig('android', 'packageName', result.config) + '.permission.C2D_MESSAGE'];
+					performedAndroidOperations(result.config);
+				}
+
+				if(directoryExists('platforms/ios')) {
+
+					debugLog("Preparing iOS build configuration");
+					performiOSOperations(result.config);
+				} else {
+					console.log("ios platform directory is not present");
+				}
+			}
+		});
+	}
+});
 
 
 

@@ -38,6 +38,7 @@
         <config-file target="config.xml" parent="/*">
             <feature name="WebEngagePlugin">
                 <param name="android-package" value="com.webengage.cordova.WebEngagePlugin" />
+                <param name="onload" value="true" />
             </feature>
         </config-file>
         <config-file target="AndroidManifest.xml" parent="/manifest">
@@ -64,9 +65,10 @@
         </config-file>
 
         <source-file src="src/android/WebEngagePlugin.java" target-dir="src/com/webengage/cordova/"/>
+        <source-file src = "src/android/android-sdk-release.aar" target-dir="libs"/>
         
         <framework src="src/android/WebEngagePlugin.gradle" custom="true" type="gradleReference"/>
-        
+
     </platform>
     
     <hook src="hooks/we_config.js" type="after_plugin_add" />

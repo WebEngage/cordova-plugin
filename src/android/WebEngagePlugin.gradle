@@ -9,10 +9,14 @@ allprojects {
     repositories {
         mavenCentral();
         jcenter();
+        flatDir {
+            dirs 'libs'
+        }
     }
 }
 dependencies {
- 	compile 'com.webengage:android-sdk:1.13.+'
+ 	//compile 'com.webengage:android-sdk:1.13.+'
+    compile (name: 'android-sdk-release', ext: 'aar')
  	compile 'com.android.support:support-v4:24.2.1' 
 	compile 'com.google.android.gms:play-services-gcm:10.0.1'
 	compile 'com.google.android.gms:play-services-location:10.0.1'
