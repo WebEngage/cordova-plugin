@@ -4,7 +4,6 @@ function WebEngagePlugin() {
 	this.push = new WebEngagePushChannel();
 	this.inapp = new WebEngageInAppChannel();
 	this.user = new WebEngageUserChannel();
-	this.analytics = new WebEngageAnalyticsChannel();
 	this._options = {};
 }
 
@@ -17,6 +16,10 @@ WebEngagePlugin.prototype.options = function(key, value) {
 	exec(null, null, "WebEngagePlugin", "globalOptions", [key, value]);
 };
 
+/*WebEngagePlugin.prototype.pushReceived = function() {
+	exec(null, null, "WebEngagePlugin", "pushReceived", []);
+};
+
 WebEngagePlugin.prototype.onActive = function(callback) {
 	
 	exec(function(){
@@ -27,7 +30,7 @@ WebEngagePlugin.prototype.onActive = function(callback) {
 		console.log("error");
 	}, "WebEngagePlugin", "onActive", [])
 	
-};
+};*/
 
 
 function WebEngagePushChannel () {
@@ -42,7 +45,7 @@ WebEngagePushChannel.prototype.options = function (key, value) {
 
 WebEngagePushChannel.prototype.onShown = function (callback) {
 	
-	if(!this.callbacks.hasOnProperty('shown')) {
+	if(!this.callbacks.hasOwnProperty('shown')) {
 		this.callbacks.shown = [];
 	}
 
@@ -50,7 +53,7 @@ WebEngagePushChannel.prototype.onShown = function (callback) {
 };
 
 WebEngagePushChannel.prototype.onClick = function (callback) {
-	if(!this.callbacks.hasOnProperty('click')) {
+	if(!this.callbacks.hasOwnProperty('click')) {
 		this.callbacks.click = [];
 	}
 
@@ -58,7 +61,7 @@ WebEngagePushChannel.prototype.onClick = function (callback) {
 }
 
 WebEngagePushChannel.prototype.onDismiss = function(callback) {
-	if(!this.callbacks.hasOnProperty('dismiss')) {
+	if(!this.callbacks.hasOwnProperty('dismiss')) {
 		this.callbacks.dismiss = [];
 	}
 
@@ -101,7 +104,7 @@ WebEngageInAppChannel.prototype.options = function(key, value) {
 
 WebEngageInAppChannel.prototype.onShown = function (callback) {
 	
-	if(!this.callbacks.hasOnProperty('shown')) {
+	if(!this.callbacks.hasOwnProperty('shown')) {
 		this.callbacks.shown = [];
 	}
 
@@ -109,7 +112,7 @@ WebEngageInAppChannel.prototype.onShown = function (callback) {
 };
 
 WebEngageInAppChannel.prototype.onClick = function (callback) {
-	if(!this.callbacks.hasOnProperty('click')) {
+	if(!this.callbacks.hasOwnProperty('click')) {
 		this.callbacks.click = [];
 	}
 
@@ -117,7 +120,7 @@ WebEngageInAppChannel.prototype.onClick = function (callback) {
 }
 
 WebEngageInAppChannel.prototype.onDismiss = function(callback) {
-	if(!this.callbacks.hasOnProperty('dismiss')) {
+	if(!this.callbacks.hasOwnProperty('dismiss')) {
 		this.callbacks.dismiss = [];
 	}
 
