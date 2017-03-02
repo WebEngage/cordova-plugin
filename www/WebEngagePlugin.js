@@ -12,12 +12,21 @@ WebEngagePlugin.prototype.engage = function() {
 };
 
 WebEngagePlugin.prototype.options = function(key, value) {
-	this._options.key = value;
+	this._options[key] = value;
 	exec(null, null, "WebEngagePlugin", "globalOptions", [key, value]);
 };
 
 WebEngagePlugin.prototype.track = function(eventName, attributes) {
-	exec(null, null, "WebEngagePlugin", "track", [eventName, attributes]);
+	if(attributes === undefined) {
+		exec(null, null, "WebEngagePlugin", "track", [eventName]);
+	} else {
+		exec(null, null, "WebEngagePlugin", "track", [eventName, attributes]);
+	}
+	
+}
+
+WebEngagePlugin.prototype.screen = function(screenName, screenData) {
+	exec(null, null, "WebEngagePlugin", "screenNavigated", [screenName, screenData]);
 }
 
 WebEngagePlugin.prototype.onActive = function(callback) {
@@ -39,7 +48,7 @@ function WebEngagePushChannel () {
 }
 
 WebEngagePushChannel.prototype.options = function (key, value) {
-	this._options.key = value;
+	this._options[key] = value;
 	exec(null, null, "WebEngagePlugin", "pushOptions", [key, value]);
 };
 
@@ -73,7 +82,7 @@ function WebEngageNotificationChannel () {
 }
 
 WebEngageNotificationChannel.prototype.options = function(key, value) {
-	this._options.key = value;
+	this._options[key] = value;
 	exec(null, null, "WebEngagePlugin", "inappOptions", [key, value]);
 };
 
@@ -108,7 +117,6 @@ WebEngageNotificationChannel.prototype.onCallbackReceived = function(type, notif
 };
 
 function WebEngageUserChannel() {
-
 }
 
 WebEngageUserChannel.prototype.login = function(userId) {
@@ -116,7 +124,15 @@ WebEngageUserChannel.prototype.login = function(userId) {
 };
 
 WebEngageUserChannel.prototype.logout = function() {
-	exec(null, null, "WebEngagePushChannel", "logout",[]);
+	exec(null, null, "WebEngagePlugin", "logout",[]);
+};
+
+WebEngageUserChannel.prototype.setAttribute = function(key, value){
+	if(value === undefined){
+		exec(null, null, "WebEngagePlugin", "setAttribute", [key]);
+	} else {
+		exec(null, null, "WebEngagePlugin", "setAttribute", [key, value]);
+	}
 };
 
 

@@ -26,6 +26,17 @@ import android.media.RingtoneManager;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.TimeZone;
+import java.util.GregorianCalendar;
+import java.util.Calendar;
+import java.util.Iterator;
+import java.util.Locale;
+
+import java.text.SimpleDateFormat;
 
 import com.webengage.sdk.android.WebEngage;
 import com.webengage.sdk.android.callbacks.PushNotificationCallbacks;
@@ -34,6 +45,9 @@ import com.webengage.sdk.android.actions.render.InAppNotificationData;
 import com.webengage.sdk.android.callbacks.InAppNotificationCallbacks;
 import com.webengage.sdk.android.callbacks.LifeCycleCallbacks;
 import com.webengage.sdk.android.utils.DataType;
+import com.webengage.sdk.android.UserProfile;
+import com.webengage.sdk.android.UserProfile.Builder;
+import com.webengage.sdk.android.utils.Gender;
 
 public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCallbacks, InAppNotificationCallbacks, LifeCycleCallbacks{
     
@@ -54,6 +68,15 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     private static  String PENDING_PUSH_URI = null;
     private static  JSONObject PENDING_PUSH_CUSTOM_DATA = null;
     private static  boolean IS_PUSH_CALLBACK_PENDING = false;
+    private static final String FIRST_NAME = "we_first_name";
+    private static final String LAST_NAME = "we_last_name";
+    private static final String EMAIL = "we_email";
+    private static final String BIRTH_DATE = "we_birth_date";
+    private static final String PHONE = "we_phone";
+    private static final String GENDER = "we_gender";
+    private static final String COMPANY = "we_company";
+    private static final String HASHED_EMAIL = "we_hashed_email";
+    private static final String HASHED_PHONE = "we_hashed_phone";
 
     static {
         Log.v(TAG, "Static Block called");
@@ -97,19 +120,19 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                 inappOptions.put(args.getString(0), args.get(1));
             }
         } else if("globalOptions".equals(action)) {
-            Log.v(TAG,args.getString(0)+" "+args.getString(1));
+            Log.v(TAG, args.getString(0) + " " + args.getString(1));
             if(args.length() == 2 && !args.isNull(0)) {
                 globalOptions.put(args.getString(0), args.get(1));
             }
         } else if ("track".equals(action)) {
-            if(args.length() > 0) {
+            if(args.length() > 0 && !args.isNull(0)) {
                 String eventName = null;
                 Map<String,Object> attributes = null;
                 eventName = args.getString(0);
                 if(args.length() == 2 && args.get(1) instanceof JSONObject) {
                     try {
-                        attributes = (Map<String, Object>)DataType.convert(args.getJSONObject(1).toString(), DataType.MAP, false);
-                    } catch (Exception e) {
+                        attributes = (Map<String, Object>)fromJSON(args.getJSONObject(1));
+                    } catch (JSONException e) {
 
                     }
                 }
@@ -120,13 +143,112 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                     } else {
                         WebEngage.get().analytics().track(eventName, attributes);
                     }
+                }  
+                
+            }
+        } else if ("setAttribute".equals(action)) {
+            JSONObject customAttr = new JSONObject();
+            UserProfile.Builder userProfileBuilder = new UserProfile.Builder();
+            if(args.length() == 1 && args.get(0) instanceof JSONObject) {
+                JSONObject attributes = null;
+                attributes = args.getJSONObject(0);
+                
+                if(attributes != null) {
+                    Iterator<String> iterator = attributes.keys();
+                    while( iterator .hasNext()) {
+                        String key = iterator.next();
+                        try {
+                            Object value = attributes.get(key);
+                            Log.v(TAG, "key: "+key+", value: "+value+" value type: "+ value.getClass().getSimpleName());
+                            filterSystemAndCustomAttributes(key, value, customAttr, userProfileBuilder);
+                        } catch (JSONException e) {
+
+                        }
+                    }
+                }
+            } else if(args.length() == 2 && !args.isNull(0)) {
+                filterSystemAndCustomAttributes(args.getString(0), args.get(1), customAttr, userProfileBuilder);
+            }
+            Map<String, Object> filteredCustomAttributes = null;
+            try {
+                filteredCustomAttributes = (Map<String, Object>) fromJSON(customAttr);
+            } catch (JSONException e) {
+
+            }
+            if(filteredCustomAttributes!= null && filteredCustomAttributes.size() > 0) {
+                WebEngage.get().user().setAttributes(filteredCustomAttributes);
+            }
+            WebEngage.get().user().setUserProfile(userProfileBuilder.build());
+        } else if("screenNavigated".equals(action)) {
+            if(args.length() > 0 && !args.isNull(0)) {
+                String screenName = null;
+                Map<String,Object> screenData = null;
+                screenName = args.getString(0);
+                if(args.length() == 2 && args.get(1) instanceof JSONObject) {
+                    try {
+                        screenData = (Map<String, Object>)fromJSON(args.getJSONObject(1));
+                    } catch (JSONException e) {
+
+                    }
+                }
+                if(screenName != null) {
+                    if(screenData == null) {
+                        WebEngage.get().analytics().screenNavigated(screenName);
+                    } else {
+                        WebEngage.get().analytics().screenNavigated(screenName, screenData);
+                    }
                 }   
                 
             }
+        } else if("login".equals(action)) {
+            if(args.length() == 1 && args.get(0) instanceof String) {
+                WebEngage.get().user().login(args.getString(0));
+            }
+        } else if("logout".equals(action)) {
+            WebEngage.get().user().logout();
         }
 
         
         return true;
+    }
+
+    private void filterSystemAndCustomAttributes(String key, Object value, JSONObject customAttr, UserProfile.Builder userProfileBuilder) {
+        if(FIRST_NAME.equals(key) && value instanceof String) {
+            userProfileBuilder.setFirstName((String) value);
+        } else if(LAST_NAME.equals(key) && value instanceof String) {
+            userProfileBuilder.setLastName((String) value);
+        } else if(EMAIL.equals(key) && value instanceof String) {
+            userProfileBuilder.setEmail((String) value);
+        } else if(BIRTH_DATE.equals(key) && value instanceof String) {
+            try {
+                String bDate = (String) value;
+                if(bDate.length() == "yyyy-MM-dd".length()){
+                    int year = Integer.valueOf(bDate.substring(0,4));
+                    int month = Integer.valueOf(bDate.substring(5,7));
+                    int day = Integer.valueOf(bDate.substring(8));
+                    userProfileBuilder.setBirthDate(year, month, day);
+                }
+            } catch (Exception e) {
+
+            }
+        } else if(PHONE.equals(key) && value instanceof String) {
+            userProfileBuilder.setPhoneNumber((String) value);
+        } else if(GENDER.equals(key) && value instanceof String) {
+            userProfileBuilder.setGender(Gender.valueByString((String) value));
+        } else if(COMPANY.equals(key) && value instanceof String) {
+            userProfileBuilder.setCompany((String) value);
+        } else if(HASHED_EMAIL.equals(key)) {
+            userProfileBuilder.setHashedEmail((String) value);
+        } else if(HASHED_PHONE.equals(key)) {
+            userProfileBuilder.setHashedPhoneNumber((String) value);
+        } else {
+            try {
+                customAttr.put(key, value);
+            } catch (JSONException e) {
+
+            }
+            
+        }
     }
     @Override
     public void onStart() {
@@ -253,6 +375,55 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
             return result;
         }
         return null;
+    }
+
+
+    private Object fromJSON(Object obj) throws JSONException {
+        if(obj == null || obj == JSONObject.NULL) {
+            return null;
+        } else if(obj instanceof JSONObject) {
+            return toMap((JSONObject) obj);
+        } else if(obj instanceof JSONArray) {
+            return toList((JSONArray) obj);
+        } else if(obj instanceof String) {
+            String value = (String) obj;
+            if(value.length() == "yyyy-MM-ddTHH:mm:ss.SSSZ".length()) {
+                try {
+                    Log.v(TAG, "date type string: " + value);
+                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+                    simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+                    return simpleDateFormat.parse(value);
+                } catch (Exception e) {
+                    return value;
+                }
+            }
+        }
+        return obj;
+    }
+
+    private Map<String, Object> toMap(JSONObject json) throws JSONException{
+        
+        Map<String, Object> map = new HashMap<String, Object>();
+        Iterator<String> iterator = json.keys();
+        while(iterator.hasNext()) {
+            String key = iterator.next();
+            Object value = fromJSON(json.get(key));
+            map.put(key, value);
+
+        }
+        return map;
+        
+    }
+
+    private List<Object> toList(JSONArray jsonArray) throws JSONException {
+        
+        List<Object> list = new ArrayList<Object>();
+        for(int i =0 ; i < jsonArray.length(); i++) {
+            Object value = fromJSON(jsonArray.get(i));
+            list.add(value);
+        }
+        return list;
+        
     }
 
 }
