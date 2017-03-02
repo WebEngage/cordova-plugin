@@ -30,10 +30,6 @@ WebEngagePlugin.prototype.screen = function(screenName, screenData) {
 	exec(null, null, "WebEngagePlugin", "screenNavigated", [screenName, screenData]);
 }
 
-WebEngagePlugin.prototype.track = function(eventName, attributes) {
-	exec(null, null, "WebEngagePlugin", "track", [eventName, attributes]);
-}
-
 
 
 
