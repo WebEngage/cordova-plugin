@@ -33,6 +33,7 @@ WebEngagePlugin.prototype.onActive = function(callback) {
 };*/
 
 WebEngagePlugin.prototype.track = function(eventName, attributes) {
+		
 	exec(null, null, "WebEngagePlugin", "track", [eventName, attributes]);
 }
 
@@ -123,7 +124,7 @@ WebEngageUserChannel.prototype.login = function(userId) {
 };
 
 WebEngageUserChannel.prototype.logout = function() {
-	exec(null, null, "WebEngagePushChannel", "logout",[]);
+	exec(null, null, "WebEngagePlugin", "logout",[]);
 };
 
 

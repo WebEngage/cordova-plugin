@@ -16,7 +16,6 @@ static WebEngagePlugin *webEngagePlugin;
 
     [super pluginInitialize];
     webEngagePlugin = self;
-    
     self.pendingDeepLinkCallback = nil;
 }
 
@@ -45,8 +44,6 @@ static WebEngagePlugin *webEngagePlugin;
             NSString* deeplink = self.pendingDeepLinkCallback[@"deepLink"];
             NSDictionary* pushData = self.pendingDeepLinkCallback[@"info"];
             
-            BOOL shouldFireDeepLink = YES;
-            
             if (webEngagePlugin && webEngagePlugin.webView) {
                 
                 
@@ -54,8 +51,6 @@ static WebEngagePlugin *webEngagePlugin;
                 
                 if ([res isEqualToString: @"true"]) {
                     //If callback is registered fire the callback.
-                    
-                    shouldFireDeepLink = NO;
                     
                     NSData* data = [NSJSONSerialization dataWithJSONObject:pushData options:0 error:nil];
                     NSString* pushDataJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
@@ -78,9 +73,7 @@ static WebEngagePlugin *webEngagePlugin;
                     
                 }
             }
-            
             self.pendingDeepLinkCallback = nil;
-            
         }
         
         if ([appDelegate isFreshLaunch]) {
@@ -95,12 +88,115 @@ static WebEngagePlugin *webEngagePlugin;
     
 }
 
+-(id) modifyObject: (id) obj modification: (id (^)(id val))modificationHandler {
+    
+    if ([obj isKindOfClass:[NSDictionary class]]) {
+        
+        NSMutableDictionary* resultDictionary = [obj mutableCopy];
+        [obj enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL* stop) {
+            
+            resultDictionary[key] = [self modifyObject:obj modification:modificationHandler];
+        }];
+        
+        return resultDictionary;
+        
+    } else if([obj isKindOfClass:[NSArray class]]) {
+        
+        NSMutableArray* resultArray = [obj mutableCopy];
+        [obj enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL* stop) {
+            resultArray[idx] = [self modifyObject:obj modification:modificationHandler];
+        }];
+        
+        return resultArray;
+    }
+    
+    return modificationHandler(obj);
+}
+
+-(NSDictionary*) convertISODateStringValuesToNSDate: (NSDictionary*) dictionary {
+    
+    return [self modifyObject:dictionary modification:^id(id obj) {
+        
+        if (obj && [obj isKindOfClass:[NSString class]]) {
+            
+            NSDateFormatter* formatter = [[NSDateFormatter alloc] init];
+            [formatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"];
+            [formatter setTimeZone:[NSTimeZone timeZoneWithAbbreviation:@"UTC"]];
+            
+            NSDate* date = [formatter dateFromString:obj];
+            
+            if (date) {
+                return date;
+            } else {
+                return obj;
+            }
+        }
+        
+        return obj;
+    }];
+}
+
 -(void) engage:(CDVInvokedUrlCommand*)command {
+    
     [self handlePushNotificationPendingDeepLinks];
 }
 
+-(void) track:(CDVInvokedUrlCommand*)command {
+    
+    CDVPluginResult* pluginResult = nil;
+    NSString* eventName = command.arguments && command.arguments.count>0?[command.arguments objectAtIndex:0]: nil;
+    
+    if (eventName != nil && eventName.length > 0) {
+        
+        id eventData = command.arguments && command.arguments.count>1?[command.arguments objectAtIndex:1]: nil;
+        
+        if (eventData && [eventData isKindOfClass:[NSDictionary class]]) {
+            
+            [[WebEngage sharedInstance].analytics
+                trackEventWithName:eventName
+                          andValue:[self convertISODateStringValuesToNSDate:eventData]];
+        } else {
+            
+            [[WebEngage sharedInstance].analytics trackEventWithName:eventName];
+        }
+        
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        
+    } else {
+        
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
+    }
+    
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
 
--(void) pushReceived:(CDVInvokedUrlCommand*)command {
+- (void)login:(CDVInvokedUrlCommand*)command {
+    
+    CDVPluginResult* pluginResult = nil;
+    NSString* userId = command.arguments && command.arguments.count>0?[command.arguments objectAtIndex:0]: nil;
+    
+    if (userId != nil && userId.length > 0) {
+        
+        [[WebEngage sharedInstance].user login: userId];
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    } else {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
+    }
+    
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
+
+- (void)logout:(CDVInvokedUrlCommand*)command {
+    
+    CDVPluginResult* pluginResult = nil;
+    [[WebEngage sharedInstance].user logout];
+    pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
+
+
+/*-(void) pushReceived:(CDVInvokedUrlCommand*)command {
     
     NSDate* date = [[NSDate alloc] init];
     
@@ -124,24 +220,9 @@ static WebEngagePlugin *webEngagePlugin;
     UIWindow* window = [UIApplication sharedApplication].keyWindow;
     [window addSubview:aWebView];
     
-}
-
-/*- (void)login:(CDVInvokedUrlCommand*)command {
-    
-    CDVPluginResult* pluginResult = nil;
-    NSString* userId = [command.arguments objectAtIndex:0];
-
-    if (userId != nil && [userId length] > 0) {
-
-      [[WebEngage sharedInstance].user loggedIn: userId];
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-    } else {
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
-    }
-
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }*/
 
+/** In-App Callbacks **/
 -(NSMutableDictionary *)notificationPrepared:(NSMutableDictionary *)inAppNotificationData 
                                   shouldStop:(BOOL *)stopRendering {
     

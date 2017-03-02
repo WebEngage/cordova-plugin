@@ -18,6 +18,9 @@
 //-(void) pushReceived:(CDVInvokedUrlCommand*)command;
 
 -(void) engage:(CDVInvokedUrlCommand*)command;
+-(void) login:(CDVInvokedUrlCommand*)command;
+-(void) logout:(CDVInvokedUrlCommand*)command;
+-(void) track:(CDVInvokedUrlCommand*)command;
 
 
 @end
