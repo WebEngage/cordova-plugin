@@ -106,7 +106,7 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
             callbackContext.success();
             if(IS_PUSH_CALLBACK_PENDING) {
                 IS_PUSH_CALLBACK_PENDING = false;
-                webView.sendJavascript("javascript:webEngage.push.onCallbackReceived( 'click', '" + PENDING_PUSH_URI + "'," + PENDING_PUSH_CUSTOM_DATA + ");");
+                webView.sendJavascript("javascript:webengage.push.onCallbackReceived( 'click', '" + PENDING_PUSH_URI + "'," + PENDING_PUSH_CUSTOM_DATA + ");");
                 PENDING_PUSH_CUSTOM_DATA = null;
                 PENDING_PUSH_URI = null;
             }
@@ -159,7 +159,6 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                         String key = iterator.next();
                         try {
                             Object value = attributes.get(key);
-                            Log.v(TAG, "key: "+key+", value: "+value+" value type: "+ value.getClass().getSimpleName());
                             filterSystemAndCustomAttributes(key, value, customAttr, userProfileBuilder);
                         } catch (JSONException e) {
 
@@ -296,7 +295,7 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     public boolean onPushNotificationClicked(Context context, PushNotificationData notificationData) {
         String uri = notificationData.getPrimeCallToAction().getAction();
         JSONObject customData = bundleToJson(notificationData.getCustomData());
-        webView.sendJavascript("javascript:webEngage.push.onCallbackReceived( 'click', '" + uri + "'," + customData + ");");
+        webView.sendJavascript("javascript:webengage.push.onCallbackReceived( 'click', '" + uri + "'," + customData + ");");
         return false;
 
     }
@@ -305,7 +304,7 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     public boolean onPushNotificationActionClicked(Context context, PushNotificationData notificationData, String buttonID) {
         String uri = notificationData.getCallToActionById(buttonID).getAction();
         JSONObject customData = bundleToJson(notificationData.getCustomData());
-        webView.sendJavascript("javascript:webEngage.push.onCallbackReceived( 'click', '" + uri + "'," + customData + ");");
+        webView.sendJavascript("javascript:webengage.push.onCallbackReceived( 'click', '" + uri + "'," + customData + ");");
         return false;
 
     }
@@ -326,18 +325,18 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
 
     @Override
     public void onInAppNotificationShown(Context context, InAppNotificationData notificationData) {
-        webView.sendJavascript("javascript:webEngage.notification.onCallbackReceived( 'shown', " + notificationData.getData() + ");");
+        webView.sendJavascript("javascript:webengage.notification.onCallbackReceived( 'shown', " + notificationData.getData() + ");");
     }
 
 
     @Override
     public void onInAppNotificationDismissed(Context context, InAppNotificationData notificationData) {
-        webView.sendJavascript("javascript:webEngage.notification.onCallbackReceived( 'dismiss', " + notificationData.getData() + ");");
+        webView.sendJavascript("javascript:webengage.notification.onCallbackReceived( 'dismiss', " + notificationData.getData() + ");");
     }
 
     @Override
     public boolean onInAppNotificationClicked(Context context, InAppNotificationData notificationData, String actionId) {
-        webView.sendJavascript("javascript:webEngage.notification.onCallbackReceived( 'click', " + notificationData.getData() + ",'" + actionId + "');");
+        webView.sendJavascript("javascript:webengage.notification.onCallbackReceived( 'click', " + notificationData.getData() + ",'" + actionId + "');");
         return false;
     }
 
@@ -389,7 +388,6 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
             String value = (String) obj;
             if(value.length() == "yyyy-MM-ddTHH:mm:ss.SSSZ".length()) {
                 try {
-                    Log.v(TAG, "date type string: " + value);
                     SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
                     simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
                     return simpleDateFormat.parse(value);

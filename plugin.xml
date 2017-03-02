@@ -5,7 +5,7 @@
 	<dependency id="cordova-plugin-cocoapod-support"/>
 
 	<js-module name="WebEngagePlugin" src="www/WebEngagePlugin.js">
-		<clobbers target="webEngage" />
+		<clobbers target="webengage" />
 	</js-module>
 	<platform name="ios">
 
