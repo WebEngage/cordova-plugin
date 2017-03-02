@@ -297,7 +297,9 @@ function updateInfoPList(infoPlistFileData, context) {
 	var parsedConfig = context['config'];
 
 	debugLog(fileName + " data:\n", infoPlistFileData);
-	var infoPlistObj = plist.parse(infoPlistFileData);
+	var infoPlistObj = plist.parse(infoPlistFileData, 'utf8');
+
+	debugLog("Parsed "+fileName+ "\n:" + JSON.stringify(infoPlistObj));
 
 
 	var licenseCode = getGlobalPropertyFromWEConfig('licenseCode', parsedConfig);
@@ -407,10 +409,18 @@ function updateInfoPList(infoPlistFileData, context) {
 		= nsLocationWhenInUseUsageDescription;
 	}
 
-	var infoPlistFileContent = plist.build(infoPlistObj);
+	var nullRemovedJSON = JSON.stringify(infoPlistObj, function(key, value){
+
+		return value == null? "":value;
+
+	});
+
+	var nullRemovedInfoPlistObj = JSON.parse(nullRemovedJSON);
+
+	var infoPlistFileContent = plist.build(nullRemovedInfoPlistObj);
 
 	debugLog("Updating "+fileName+" with following configuration: \n"+
-		JSON.stringify(infoPlistObj, null, 2));
+		JSON.stringify(nullRemovedInfoPlistObj, null, 2));
 
 	fs.writeFile(iOSDir+"/"+fileName, infoPlistFileContent, function(err) {
 

@@ -16,6 +16,7 @@ WebEngagePlugin.prototype.options = function(key, value) {
 	exec(null, null, "WebEngagePlugin", "globalOptions", [key, value]);
 };
 
+
 WebEngagePlugin.prototype.track = function(eventName, attributes) {
 	if(attributes === undefined) {
 		exec(null, null, "WebEngagePlugin", "track", [eventName]);
@@ -29,17 +30,11 @@ WebEngagePlugin.prototype.screen = function(screenName, screenData) {
 	exec(null, null, "WebEngagePlugin", "screenNavigated", [screenName, screenData]);
 }
 
-WebEngagePlugin.prototype.onActive = function(callback) {
-	
-	exec(function(){
-		if (callback) {
-			callback();
-		}
-	}, function(){
-		console.log("error");
-	}, "WebEngagePlugin", "onActive", [])
-	
-};
+WebEngagePlugin.prototype.track = function(eventName, attributes) {
+	exec(null, null, "WebEngagePlugin", "track", [eventName, attributes]);
+}
+
+
 
 
 function WebEngagePushChannel () {
@@ -57,6 +52,7 @@ WebEngagePushChannel.prototype.onClick = function (callback) {
 }
 
 WebEngagePushChannel.prototype.onCallbackReceived = function(type, uri, customData) {
+	
 	if(type) {
 		switch(type) {
 			case 'shown' :

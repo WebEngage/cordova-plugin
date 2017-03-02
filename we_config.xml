@@ -1,6 +1,6 @@
 <config>
     <licenseCode>~2024c585</licenseCode>
-    <debug>true</debug>
+    <debug>false</debug>
     <ios>
     	<backgroundLocation>true</backgroundLocation>
         <apnsAutoRegister>true</apnsAutoRegister>
