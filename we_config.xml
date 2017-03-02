@@ -8,7 +8,7 @@
     	<NSLocationAlwaysUsageDescription>We assure WE will be responsible..</NSLocationAlwaysUsageDescription>
     </ios>
     <android>
-        <packageName>com.webengage.cordovatest</packageName>
+        <packageName>com.ionicframework.ionictest595088</packageName>
         <pushProjectNumber>299770535209</pushProjectNumber>
         <autoPushRegister>true</autoPushRegister>
         <pushLargeIcon>@drawable/screen</pushLargeIcon>

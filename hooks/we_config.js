@@ -57,14 +57,18 @@ function addMetaData(manifest, config) {
 		if(isString(pushProjectNumber)) {
 			metaData.push(constructNameValueTag(androidMetaDataKeys[2], '$' + pushProjectNumber));
 		}
-		var locationTracking = getPlatformPropertyFromWEConfig('android', 'lcoationTracking', config);	
+		var locationTracking = getPlatformPropertyFromWEConfig('android', 'locationTracking', config);	
 		if(isString(locationTracking)) {
 			metaData.push(constructNameValueTag(androidMetaDataKeys[3], locationTracking));
+		} else {
+			metaData.push(constructNameValueTag(androidMetaDataKeys[3], "true"));
 		}
 
 		var autoPushRegister = getPlatformPropertyFromWEConfig('android', 'autoPushRegister', config);
 		if(isString(autoPushRegister)) {
 			metaData.push(constructNameValueTag(androidMetaDataKeys[4], autoPushRegister));
+		} else {
+			metaData.push(constructNameValueTag(androidMetaDataKeys[4], "true"));
 		}
 
 		var environment = getPlatformPropertyFromWEConfig('android', 'environment', config);
