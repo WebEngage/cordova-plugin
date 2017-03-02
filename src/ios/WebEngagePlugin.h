@@ -21,6 +21,7 @@
 -(void) login:(CDVInvokedUrlCommand*)command;
 -(void) logout:(CDVInvokedUrlCommand*)command;
 -(void) track:(CDVInvokedUrlCommand*)command;
+-(void)setAttribute:(CDVInvokedUrlCommand*)command;
 
 
 @end

@@ -35,7 +35,7 @@ WebEngagePlugin.prototype.screen = function(screenName, screenData) {
 		} else {
 			exec(null, null, "WebEngagePlugin", "screenNavigated", [screenName, screenData]);
 		}
-		
+
 	} else if(screenName !== undefined && isValidJavascriptObject(screenName)) {
 		exec(null, null, "WebEngagePlugin", "screenNavigated", [null, screenName]);
 		
@@ -65,7 +65,6 @@ WebEngagePushChannel.prototype.onCallbackReceived = function(type, uri, customDa
 	if(type) {
 		switch(type) {
 			case 'shown' :
-				
 				break;
 
 			case 'click' :
@@ -132,10 +131,11 @@ WebEngageUserChannel.prototype.logout = function() {
 	exec(null, null, "WebEngagePlugin", "logout",[]);
 };
 
-WebEngageUserChannel.prototype.setAttribute = function(key, value){
-	if(value === undefined){
+WebEngageUserChannel.prototype.setAttribute = function(key, value) {
+
+	if(value === undefined && isValidJavascriptObject(key)) {
 		exec(null, null, "WebEngagePlugin", "setAttribute", [key]);
-	} else {
+	} else if(key && isValidString(key) && value !== undefined) {
 		exec(null, null, "WebEngagePlugin", "setAttribute", [key, value]);
 	}
 };
@@ -150,8 +150,6 @@ function isValidString(val) {
 
 	return val !== undefined && val != null && (typeof val === 'string' || val instanceof String);
 }
-
-
 
 if(typeof module != 'undefined' && module.exports) {
 	var WebEngagePlugin = new WebEngagePlugin();
