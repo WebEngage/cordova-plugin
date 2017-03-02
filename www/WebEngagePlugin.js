@@ -27,7 +27,22 @@ WebEngagePlugin.prototype.track = function(eventName, attributes) {
 }
 
 WebEngagePlugin.prototype.screen = function(screenName, screenData) {
-	exec(null, null, "WebEngagePlugin", "screenNavigated", [screenName, screenData]);
+
+
+	if (screenName !== undefined && (typeof screenName === 'string' || screenName instanceof String)) {
+		if(screenData === undefined) {
+			exec(null, null, "WebEngagePlugin", "screenNavigated", [screenName]);
+		} else {
+			exec(null, null, "WebEngagePlugin", "screenNavigated", [screenName, screenData]);
+		}
+	} else if(screenName !== undefined && isValidJavascriptObject(screenName)) {
+
+		exec(null, null, "WebEngagePlugin", "screenNavigated", [null, screenName]);
+		
+	} else {
+		console.err("Invalid arguments provided to screen plugin call");
+	}
+	
 }
 
 
@@ -124,6 +139,17 @@ WebEngageUserChannel.prototype.setAttribute = function(key, value){
 		exec(null, null, "WebEngagePlugin", "setAttribute", [key, value]);
 	}
 };
+
+function isValidJavascriptObject(val) {
+
+	return val !== undefined && val != null && typeof val === 'object' 
+		&& Object.prototype.toString.call(val) === '[object Object]';
+}
+
+function isValidString(val) {
+
+	return val !== undefined && val != null && (typeof val === 'string' || val instanceof String);
+}
 
 
 
