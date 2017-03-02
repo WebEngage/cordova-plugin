@@ -28,15 +28,15 @@ WebEngagePlugin.prototype.track = function(eventName, attributes) {
 
 WebEngagePlugin.prototype.screen = function(screenName, screenData) {
 
-
 	if (screenName !== undefined && (typeof screenName === 'string' || screenName instanceof String)) {
+		
 		if(screenData === undefined) {
 			exec(null, null, "WebEngagePlugin", "screenNavigated", [screenName]);
 		} else {
 			exec(null, null, "WebEngagePlugin", "screenNavigated", [screenName, screenData]);
 		}
+		
 	} else if(screenName !== undefined && isValidJavascriptObject(screenName)) {
-
 		exec(null, null, "WebEngagePlugin", "screenNavigated", [null, screenName]);
 		
 	} else {

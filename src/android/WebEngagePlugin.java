@@ -179,10 +179,10 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
             }
             WebEngage.get().user().setUserProfile(userProfileBuilder.build());
         } else if("screenNavigated".equals(action)) {
-            if(args.length() > 0 && !args.isNull(0)) {
+            if(args.length() > 0) {
                 String screenName = null;
                 Map<String,Object> screenData = null;
-                screenName = args.getString(0);
+                screenName = args.isNull(0) ? null : args.getString(0);
                 if(args.length() == 2 && args.get(1) instanceof JSONObject) {
                     try {
                         screenData = (Map<String, Object>)fromJSON(args.getJSONObject(1));
@@ -196,7 +196,11 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                     } else {
                         WebEngage.get().analytics().screenNavigated(screenName, screenData);
                     }
-                }   
+                } else {
+                    if(screenData != null) {
+                        WebEngage.get().analytics().setScreenData(screenData);
+                    }
+                }  
                 
             }
         } else if("login".equals(action)) {
