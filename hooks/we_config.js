@@ -68,7 +68,7 @@ function addMetaData(manifest, config) {
 		if(isString(autoPushRegister)) {
 			metaData.push(constructNameValueTag(androidMetaDataKeys[4], autoPushRegister));
 		} else {
-			metaData.push(constructNameValueTag(androidMetaDataKeys[4], "true"));
+			metaData.push(constructNameValueTag(androidMetaDataKeys[4], "false"));
 		}
 
 		var environment = getPlatformPropertyFromWEConfig('android', 'environment', config);
@@ -116,7 +116,7 @@ function addReceivers(manifest, config) {
 
 		
 		var shouldDoAutoRegistration = getPlatformPropertyFromWEConfig('android', 'autoPushRegister', config);
-		shouldDoAutoRegistration = isString(shouldDoAutoRegistration) ? (shouldDoAutoRegistration !== 'false') : true;
+		shouldDoAutoRegistration = isString(shouldDoAutoRegistration) ? (shouldDoAutoRegistration !== 'false') : false;
 		if(shouldDoAutoRegistration) {
 			receivers.push({	
 				"$" :{ 
@@ -184,7 +184,7 @@ function addPermissions(manifest, config) {
 		var permisions = manifest['permission'];
 		
 		var shouldDoAutoRegistration = getPlatformPropertyFromWEConfig('android', 'autoPushRegister', config);
-		shouldDoAutoRegistration = isString(shouldDoAutoRegistration) ? (shouldDoAutoRegistration !== 'false') : true;
+		shouldDoAutoRegistration = isString(shouldDoAutoRegistration) ? (shouldDoAutoRegistration !== 'false') : false;
 		if(shouldDoAutoRegistration) {
 			usesPermissions = checkValidXml2jsNode(usesPermissions) ? usesPermissions.filter(pushPermissionFilter) : [];
 			permisions = checkValidXml2jsNode(permisions) ? permisions.filter(pushPermissionFilter) : [];

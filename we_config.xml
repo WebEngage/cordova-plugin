@@ -8,7 +8,6 @@
     </ios>
     <android>
         <packageName><!-- YOUR PACKAGE NAME --></packageName>
-        <pushProjectNumber><!-- YOUR PUSH PROJECT NUMBER --></pushProjectNumber>
-        <autoPushRegister>true</autoPushRegister>
+        <autoPushRegister>false</autoPushRegister>
     </android>
 </config>
