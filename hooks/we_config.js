@@ -47,25 +47,27 @@ function addMetaData(manifest, config) {
 		var licenseCode = getGlobalPropertyFromWEConfig('licenseCode', config);
 		if(isString(licenseCode)) {
 			metaData.push(constructNameValueTag(androidMetaDataKeys[0], licenseCode));
-		}
+		} 
 
 		var debug = getGlobalPropertyFromWEConfig('debug', config);
-		if(isString(debug)) {
+		if(isString(debug) && (debug === 'true' || debug === 'false')) {
 			metaData.push(constructNameValueTag(androidMetaDataKeys[1], debug));
+		} else {
+			metaData.push(constructNameValueTag(androidMetaDataKeys[1], "false"));
 		}
 		var pushProjectNumber = getPlatformPropertyFromWEConfig('android', 'pushProjectNumber', config);
 		if(isString(pushProjectNumber)) {
 			metaData.push(constructNameValueTag(androidMetaDataKeys[2], '$' + pushProjectNumber));
 		}
 		var locationTracking = getPlatformPropertyFromWEConfig('android', 'locationTracking', config);	
-		if(isString(locationTracking)) {
+		if(isString(locationTracking) && (locationTracking === 'true' || locationTracking === 'false')) {
 			metaData.push(constructNameValueTag(androidMetaDataKeys[3], locationTracking));
 		} else {
 			metaData.push(constructNameValueTag(androidMetaDataKeys[3], "true"));
 		}
 
 		var autoPushRegister = getPlatformPropertyFromWEConfig('android', 'autoPushRegister', config);
-		if(isString(autoPushRegister)) {
+		if(isString(autoPushRegister) && (autoPushRegister === 'true' || autoPushRegister === 'false')) {
 			metaData.push(constructNameValueTag(androidMetaDataKeys[4], autoPushRegister));
 		} else {
 			metaData.push(constructNameValueTag(androidMetaDataKeys[4], "false"));
@@ -77,8 +79,10 @@ function addMetaData(manifest, config) {
 		}
 
 		var alternateInterfaceId = getPlatformPropertyFromWEConfig('android', 'alternateInterfaceId', config);
-		if(isString(alternateInterfaceId)) {
+		if(isString(alternateInterfaceId) && (alternateInterfaceId === 'true' || alternateInterfaceId === 'false')) {
 			metaData.push(constructNameValueTag(androidMetaDataKeys[6], alternateInterfaceId));
+		} else {
+			metaData.push(constructNameValueTag(androidMetaDataKeys[6], "false"));
 		}
 
 		var pushSmallIcon = getPlatformPropertyFromWEConfig('android', 'pushSmallIcon', config);
@@ -116,7 +120,7 @@ function addReceivers(manifest, config) {
 
 		
 		var shouldDoAutoRegistration = getPlatformPropertyFromWEConfig('android', 'autoPushRegister', config);
-		shouldDoAutoRegistration = isString(shouldDoAutoRegistration) ? (shouldDoAutoRegistration !== 'false') : false;
+		shouldDoAutoRegistration = isString(shouldDoAutoRegistration) ? (shouldDoAutoRegistration === 'true') : false;
 		if(shouldDoAutoRegistration) {
 			receivers.push({	
 				"$" :{ 
@@ -184,7 +188,7 @@ function addPermissions(manifest, config) {
 		var permisions = manifest['permission'];
 		
 		var shouldDoAutoRegistration = getPlatformPropertyFromWEConfig('android', 'autoPushRegister', config);
-		shouldDoAutoRegistration = isString(shouldDoAutoRegistration) ? (shouldDoAutoRegistration !== 'false') : false;
+		shouldDoAutoRegistration = isString(shouldDoAutoRegistration) ? (shouldDoAutoRegistration === 'true') : false;
 		if(shouldDoAutoRegistration) {
 			usesPermissions = checkValidXml2jsNode(usesPermissions) ? usesPermissions.filter(pushPermissionFilter) : [];
 			permisions = checkValidXml2jsNode(permisions) ? permisions.filter(pushPermissionFilter) : [];
