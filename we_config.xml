@@ -7,9 +7,7 @@
     	<WEGEnableLocationAuthorizationRequest>NO</WEGEnableLocationAuthorizationRequest>
     </ios>
     <android>
-        <packageName>com.ionicframework.ionictest595088</packageName>
-        <pushProjectNumber>299770535209</pushProjectNumber>
-        <autoPushRegister>true</autoPushRegister>
-        <pushLargeIcon>@drawable/screen</pushLargeIcon>
+        <packageName><!-- YOUR PACKAGE NAME --></packageName>
+        <autoPushRegister>false</autoPushRegister>
     </android>
 </config>
