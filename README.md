@@ -17,13 +17,15 @@ To install WebEngage for your Cordova App, you'll need to take three basic steps
 
 2. Add platform specific configuration to we_config.xml file
 
+3. Initialise the plugin.
+
 
 
 ### 1. Global Configuration
 
 1. Open `we_config.xml` file within the `plugins\cordova-plugin-com-webengage` directory inside your app's root directory.
 2. Obtain your license code from the WebEngage dashboard and paste it within the `licenseCode` tag in the xml file.
-3. Initialise the plugin.
+
 
 ### 2. Platform specific Configuration
 
