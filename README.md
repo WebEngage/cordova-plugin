@@ -248,25 +248,23 @@ To enable location tracking in android please insert `locationTracking` tag with
 
 All the iOS specific configuration goes under the `ios` tag under the global `config` tag of the `we_config.xml`. The following properties can be used to configure the SDK of the behaviour as documented below:
 
-backgroundLocation : The allowed values for this property are true and false(default). If true WebEngage SDK will track location updates in the background for the user.
+**backgroundLocation** : The allowed values for this property are true and false(default). If true WebEngage SDK will track location updates in the background for the user.
 
-apnsAutoRegister : The allowed values for this property are true(default) and false. If the property is missing or the value is anything other than false, WebEngage SDK will handle automatic registration of the device with Apple Push Notification Service.
+**apnsAutoRegister** : The allowed values for this property are true(default) and false. If the property is missing or the value is anything other than false, WebEngage SDK will handle automatic registration of the device with Apple Push Notification Service.
 
 In case your app handles the APNS registration, or uses some other third party tool for the same, false value should be used for this property.
 
-WEGEnableLocationAuthorizationRequest : The allowed values are NO(default), IN_USE and ALWAYS. If the value of the property is IN_USE or ALWAYS, WebEngage SDK will launch location permission pop up at the initial launch of the app, seeking permission to use location either:
+**WEGEnableLocationAuthorizationRequest** : The allowed values are NO(default), IN_USE and ALWAYS. If the value of the property is IN_USE or ALWAYS, WebEngage SDK will launch location permission pop up at the initial launch of the app, seeking permission to use location either:
 when the app is in use only(IN_USE),
 always(ALWAYS)
 If the property is not present, or the value is anything other than IN_USE or ALWAYS, WebEngage SDK will not launch the location permission pop up and the onus of seeking the location permission would completely lie on your App.
 
-P.S:
-
-Location based features will work as long as the App has requisite permissions, whether those permissions were triggered by WebEngage SDK or the App itself.
+P.S: Location based features will work as long as the App has requisite permissions, whether those permissions were triggered by WebEngage SDK or the App itself.
 The ALWAYS permission is required for campaigns based on geo-fenced segments.
 
-NSLocationWhenInUseUsageDescription : This is a standard iOS App Info.plist property. This property is optional but is required if the value for WEGEnableLocationAuthorizationRequest property is IN_USE. If you do not provide this property, iOS will restrict launching the location permission dialog.
+**NSLocationWhenInUseUsageDescription** : This is a standard iOS App Info.plist property. This property is optional but is required if the value for WEGEnableLocationAuthorizationRequest property is IN_USE. If you do not provide this property, iOS will restrict launching the location permission dialog.
 
-NSLocationAlwaysUsageDescription : This is a standard iOS App Info.plist property. This property is optional but is required if the value for WEGEnableLocationAuthorizationRequest property is ALWAYS. If you do not provide this property, iOS will restrict launching the location permission dialog.
+**NSLocationAlwaysUsageDescription** : This is a standard iOS App Info.plist property. This property is optional but is required if the value for WEGEnableLocationAuthorizationRequest property is ALWAYS. If you do not provide this property, iOS will restrict launching the location permission dialog.
 
 ```
 <config>
