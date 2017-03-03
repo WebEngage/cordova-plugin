@@ -51,18 +51,6 @@ static WebEngagePlugin *webEngagePlugin;
 
 -(void)handlePushNotificationPendingDeepLinks {
     
-    /*NSDate* date = [[NSDate alloc] init];
-    double d = [date timeIntervalSinceReferenceDate];
-    NSNumber* refTime = [NSNumber numberWithDouble:d];
-    UIWebView* aWebView = [[UIWebView alloc] init];
-    CGSize screenSize = [UIScreen mainScreen].bounds.size;
-    float width, height;
-    width = screenSize.width;
-    height = screenSize.height;
-    CGRect frame = CGRectMake(0.0, 0.0, width, height/5.0);
-    aWebView.frame = frame;
-    NSString* htmlString = [NSString stringWithFormat:@"<h3>pendingDeepLink at engage:%@</h3>", self.pendingDeepLinkCallback? [self.pendingDeepLinkCallback description]: @"nil"];*/
-    
     AppDelegate* appDelegate = [UIApplication sharedApplication].delegate;
     
     @synchronized (appDelegate) {
@@ -77,7 +65,9 @@ static WebEngagePlugin *webEngagePlugin;
             if (webEngagePlugin && webEngagePlugin.webView) {
                 
                 
-                NSString* res = [(UIWebView*)webEngagePlugin.webView stringByEvaluatingJavaScriptFromString:@"webEngage.push.callbacks.hasOwnProperty('click') && webEngage.push.callbacks.click.length > 0?true: false;"];
+                NSString* res = [(UIWebView*)webEngagePlugin.webView 
+                                    stringByEvaluatingJavaScriptFromString:
+                                        @"webengage.push.clickCallback !== undefined && webengage.push.clickCallback != null?true: false;"];
                 
                 if ([res isEqualToString: @"true"]) {
                     //If callback is registered fire the callback.
@@ -85,7 +75,7 @@ static WebEngagePlugin *webEngagePlugin;
                     NSData* data = [NSJSONSerialization dataWithJSONObject:pushData options:0 error:nil];
                     NSString* pushDataJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
                     
-                    NSString* string = [NSString stringWithFormat:@"webEngage.push.onCallbackReceived( 'click', %@, '%@')", pushData? pushDataJSON: @"null", deeplink];
+                    NSString* string = [NSString stringWithFormat:@"webengage.push.onCallbackReceived( 'click', %@, '%@')", pushData? pushDataJSON: @"null", deeplink];
                     
                     //htmlString = [NSString stringWithFormat:@"callback in engage: %@", string];
                     
@@ -417,7 +407,7 @@ static WebEngagePlugin *webEngagePlugin;
     
     NSString* resultData = [(UIWebView*)self.webView stringByEvaluatingJavaScriptFromString:
                                 [NSString stringWithFormat:
-                                    @"JSON.stringify(webEngage.inapp.onCallbackReceived( 'prepared', %@))", 
+                                    @"JSON.stringify(webengage.notification.onCallbackReceived( 'prepared', %@))", 
                                         inAppJSON]];
     NSMutableDictionary* modifiedData = nil;
     if (resultData) {
@@ -446,32 +436,35 @@ static WebEngagePlugin *webEngagePlugin;
 
 -(void)notificationShown:(NSMutableDictionary *)inAppNotificationData {
     
-    NSString* inAppJson = [inAppNotificationData description];
+    NSData* data = [NSJSONSerialization dataWithJSONObject:inAppNotificationData options:0 error:nil];
+    NSString* inAppJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
     
     [self.commandDelegate evalJs:
         [NSString stringWithFormat:
-            @"webEngage.inapp.onCallbackReceived( 'shown', %@)", inAppJson]];
+            @"webengage.notification.onCallbackReceived( 'shown', %@)", inAppJson]];
 
 }
 
 -(void)notificationDismissed:(NSMutableDictionary *)inAppNotificationData {
     
-    NSString* inAppJson = [inAppNotificationData description];
+    NSData* data = [NSJSONSerialization dataWithJSONObject:inAppNotificationData options:0 error:nil];
+    NSString* inAppJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
     
     [self.commandDelegate evalJs:
         [NSString stringWithFormat:
-            @"webEngage.inapp.onCallbackReceived( 'dismiss', %@)", inAppJson]];
+            @"webengage.notification.onCallbackReceived( 'dismiss', %@)", inAppJson]];
 
 }
 
 -(void)notification:(NSMutableDictionary *)inAppNotificationData 
                             clickedWithAction:(NSString *)actionId {
     
-    NSString* inAppJson = [inAppNotificationData description];
+    NSData* data = [NSJSONSerialization dataWithJSONObject:inAppNotificationData options:0 error:nil];
+    NSString* inAppJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
     
     [self.commandDelegate evalJs:
         [NSString stringWithFormat:
-            @"webEngage.inapp.onCallbackReceived( 'click', %@, '%@')", 
+            @"webengage.notification.onCallbackReceived( 'click', %@, '%@')", 
                 inAppJson, actionId]];
 
 }

@@ -29,8 +29,6 @@
 		<source-file src="src/ios/WebEngagePlugin.m" />
 		<header-file src="src/ios/AppDelegate+WebEngagePlugin.h" />
 		<source-file src="src/ios/AppDelegate+WebEngagePlugin.m" />
-        <!--<header-file src="src/ios/WEGInAppCallbackInterface.h" />
-        <source-file src="src/ios/WEGInAppCallbackInterface.m" />-->
 	</platform>
     
     <platform name="android">
