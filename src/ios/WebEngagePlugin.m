@@ -441,7 +441,7 @@ static WebEngagePlugin *webEngagePlugin;
     
     [self.commandDelegate evalJs:
         [NSString stringWithFormat:
-            @"webengage.notification.onCallbackReceived( 'shown', %@)", inAppJson]];
+            @"webengage.notification.onCallbackReceived( 'shown', %@)", inAppJSON]];
 
 }
 
@@ -452,7 +452,7 @@ static WebEngagePlugin *webEngagePlugin;
     
     [self.commandDelegate evalJs:
         [NSString stringWithFormat:
-            @"webengage.notification.onCallbackReceived( 'dismiss', %@)", inAppJson]];
+            @"webengage.notification.onCallbackReceived( 'dismiss', %@)", inAppJSON]];
 
 }
 
@@ -465,7 +465,7 @@ static WebEngagePlugin *webEngagePlugin;
     [self.commandDelegate evalJs:
         [NSString stringWithFormat:
             @"webengage.notification.onCallbackReceived( 'click', %@, '%@')", 
-                inAppJson, actionId]];
+                inAppJSON, actionId]];
 
 }
 
