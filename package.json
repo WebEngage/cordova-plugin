@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@repo.webengage.com:saumitra/cordova-plugin.git"
+    "url": "git@github.com:WebEngage/cordova-plugin.git"
   },
   "keywords": [
     "ecosystem:cordova",
