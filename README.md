@@ -3,7 +3,7 @@ WebEngage for PhoneGap/Cordova
 
 ## Supported Versions
 
-The Cordova SDK was tested on Cordova v6.4.0. Read the complete documentation at [WebEngage Cordova/PhoneGap Plugin Documentation](https://dash.readme.io/project/webengage/v1.0/docs/cordova-integration)
+The Cordova SDK was tested on Cordova v6.4.0. Read the complete documentation at [WebEngage Cordova/PhoneGap Plugin Documentation](http://docs.webengage.com/docs/cordova-integration)
 
 ## Installation
 
