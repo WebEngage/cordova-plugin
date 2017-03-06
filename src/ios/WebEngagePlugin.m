@@ -38,12 +38,14 @@ static WebEngagePlugin *webEngagePlugin;
     NSDateFormatter* dateFormatter = [[NSDateFormatter alloc] init];
     [dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"];
     [dateFormatter setTimeZone:[NSTimeZone timeZoneWithAbbreviation:@"UTC"]];
+    [dateFormatter setLocale:[NSLocale alloc] initWithLocaleIdentifier:@"gb"];
     
     self.dateFormatter = dateFormatter;
     
     NSDateFormatter* birthDateFormatter = [[NSDateFormatter alloc] init];
     [birthDateFormatter setDateFormat:@"yyyy-MM-dd"];
     [birthDateFormatter setTimeZone:[NSTimeZone timeZoneWithAbbreviation:@"UTC"]];
+    [birthDateFormatter setLocale:[NSLocale alloc] initWithLocaleIdentifier:@"gb"];
     
     self.birthDateFormatter = birthDateFormatter;
     
