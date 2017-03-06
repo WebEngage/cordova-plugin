@@ -329,7 +329,7 @@ static WebEngagePlugin *webEngagePlugin;
             
         } else if ([attributeName isEqualToString:WE_HASHED_PHONE]) {
             
-            [[WebEngage sharedInstance].user setEmail:attributeValue];
+            [[WebEngage sharedInstance].user setHashedPhone:attributeValue];
         }
         
         //Any other we_* user attribute is ignored
