@@ -237,7 +237,7 @@ static WebEngagePlugin *webEngagePlugin;
     
     if (userId != nil && userId.length > 0) {
         
-        [[WebEngage sharedInstance].user login: userId];
+        [[WebEngage sharedInstance].user loggedIn: userId];
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     } else {
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
@@ -249,7 +249,7 @@ static WebEngagePlugin *webEngagePlugin;
 - (void)logout:(CDVInvokedUrlCommand*)command {
     
     CDVPluginResult* pluginResult = nil;
-    [[WebEngage sharedInstance].user logout];
+    [[WebEngage sharedInstance].user loggedOut];
     pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
