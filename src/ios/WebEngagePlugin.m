@@ -38,14 +38,14 @@ static WebEngagePlugin *webEngagePlugin;
     NSDateFormatter* dateFormatter = [[NSDateFormatter alloc] init];
     [dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"];
     [dateFormatter setTimeZone:[NSTimeZone timeZoneWithAbbreviation:@"UTC"]];
-    [dateFormatter setLocale:[NSLocale alloc] initWithLocaleIdentifier:@"gb"];
+    [dateFormatter setLocale:[[NSLocale alloc] initWithLocaleIdentifier:@"gb"]];
     
     self.dateFormatter = dateFormatter;
     
     NSDateFormatter* birthDateFormatter = [[NSDateFormatter alloc] init];
     [birthDateFormatter setDateFormat:@"yyyy-MM-dd"];
     [birthDateFormatter setTimeZone:[NSTimeZone timeZoneWithAbbreviation:@"UTC"]];
-    [birthDateFormatter setLocale:[NSLocale alloc] initWithLocaleIdentifier:@"gb"];
+    [birthDateFormatter setLocale:[[NSLocale alloc] initWithLocaleIdentifier:@"gb"]];
     
     self.birthDateFormatter = birthDateFormatter;
     
@@ -103,10 +103,6 @@ static WebEngagePlugin *webEngagePlugin;
         }
 
     }
-    
-    /*[aWebView loadHTMLString:[NSString stringWithFormat:@"%@ at %@", htmlString , [[NSDate date] description]] baseURL:nil];
-    UIWindow* window = [UIApplication sharedApplication].keyWindow;
-    [window addSubview:aWebView];*/
     
 }
 
