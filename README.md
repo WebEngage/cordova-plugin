@@ -7,7 +7,7 @@ The Cordova SDK was tested on Cordova v6.4.0. Read the complete documentation at
 
 ## Installation
 
-cordova plugin add cordova-plugin-webengage
+cordova plugin add cordova-plugin-webengage --fetch
 
 ## Integration
 
