@@ -59,8 +59,6 @@ static WebEngagePlugin *webEngagePlugin;
         
         if(self.pendingDeepLinkCallback && self.pendingDeepLinkCallback[@"deepLink"]) {
             
-            //htmlString = @"Pending deep link present in engage";
-            
             NSString* deeplink = self.pendingDeepLinkCallback[@"deepLink"];
             NSDictionary* pushData = self.pendingDeepLinkCallback[@"info"];
             
@@ -79,13 +77,10 @@ static WebEngagePlugin *webEngagePlugin;
                     
                     NSString* string = [NSString stringWithFormat:@"webengage.push.onCallbackReceived( 'click', %@, '%@')", pushData? pushDataJSON: @"null", deeplink];
                     
-                    //htmlString = [NSString stringWithFormat:@"callback in engage: %@", string];
-                    
                     [self.commandDelegate evalJs:string];
                     
                 } else {
                     
-                    //htmlString = @"firing deep link in engage";
                     NSURL* url = [NSURL URLWithString:deeplink];
                     if (url) {
                         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
@@ -349,9 +344,8 @@ static WebEngagePlugin *webEngagePlugin;
         } else if ([resolvedAttributeValue isKindOfClass:[NSArray class]]) {
             [[WebEngage sharedInstance].user setAttribute:attributeName withArrayValue:resolvedAttributeValue];
         } else if ([resolvedAttributeValue isKindOfClass:[NSDictionary class]]) {
-            
-            //TODO: To be included in SDK
-            //[[WebEngage sharedInstance].user setAttribute:attributeName withStringValue:resolvedAttributeValue];
+        
+            [[WebEngage sharedInstance].user setAttribute:attributeName withDictionaryValue:resolvedAttributeValue];
         }
         
     }
@@ -371,34 +365,6 @@ static WebEngagePlugin *webEngagePlugin;
     return NO;
 
 }
-
-
-
-/*-(void) pushReceived:(CDVInvokedUrlCommand*)command {
- 
-    NSDate* date = [[NSDate alloc] init];
- 
-    double d = [date timeIntervalSinceReferenceDate];
-    
-    NSNumber* refTime = [NSNumber numberWithDouble:d];
-    
-    UIWebView* aWebView = [[UIWebView alloc] init];
-    CGSize screenSize = [UIScreen mainScreen].bounds.size;
-    
-    float width, height;
-    width = screenSize.width;
-    height = screenSize.height;
-    
-    CGRect frame = CGRectMake(0.0, height/5.0, width, height/5.0);
-    
-    aWebView.frame = frame;
-    
-    [aWebView loadHTMLString:[NSString stringWithFormat:@"<h3>Push Received at %@</h3>", refTime] baseURL:nil];
-    
-    UIWindow* window = [UIApplication sharedApplication].keyWindow;
-    [window addSubview:aWebView];
-    
-}*/
 
 /** In-App Callbacks **/
 -(NSMutableDictionary *)notificationPrepared:(NSMutableDictionary *)inAppNotificationData 
