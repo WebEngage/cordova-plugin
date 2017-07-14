@@ -1,15 +1,17 @@
 <?xml version='1.0' encoding='utf-8'?>
-<plugin id="cordova-plugin-webengage" version="0.0.1" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
+<plugin id="cordova-plugin-webengage" version="0.0.3" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
 	<name>WebEngagePlugin</name>
 
-	<dependency id="cordova-plugin-cocoapod-support"/>
+    <!-- Removed for deprecating cocoapods support -->
+	<!--<dependency id="cordova-plugin-cocoapod-support"/>-->
 
 	<js-module name="WebEngagePlugin" src="www/WebEngagePlugin.js">
 		<clobbers target="webengage" />
 	</js-module>
 	<platform name="ios">
 
-		<pod id="WebEngage" />
+        <!-- Removed for deprecating cocoapods support -->
+		<!--<pod id="WebEngage" />-->
 
 		<config-file parent="/*" target="config.xml">
 			<feature name="WebEngagePlugin">
