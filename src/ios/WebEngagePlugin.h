@@ -23,5 +23,5 @@
 -(void) track:(CDVInvokedUrlCommand*)command;
 -(void) setAttribute:(CDVInvokedUrlCommand*)command;
 
-
++(NSString*)evaluateJavaScript:(NSString*)script onWebView:(UIView*)webView;
 @end

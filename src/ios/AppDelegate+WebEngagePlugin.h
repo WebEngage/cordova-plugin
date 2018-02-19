@@ -1,5 +1,6 @@
 #import "AppDelegate.h"
 #import "WebEngagePlugin.h"
+#import <WebKit/WebKit.h>
 
 @interface AppDelegate (WebEngagePlugin)
 

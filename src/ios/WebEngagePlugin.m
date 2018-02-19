@@ -3,6 +3,7 @@
 #import <Cordova/CDV.h>
 #import <WebEngage/WebEngage.h>
 #import "WebEngagePlugin.h"
+#import <WebKit/WebKit.h>
 
 #define WE_FIRST_NAME @"we_first_name"
 #define WE_LAST_NAME @"we_last_name"
@@ -38,12 +39,14 @@ static WebEngagePlugin *webEngagePlugin;
     NSDateFormatter* dateFormatter = [[NSDateFormatter alloc] init];
     [dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"];
     [dateFormatter setTimeZone:[NSTimeZone timeZoneWithAbbreviation:@"UTC"]];
+    [dateFormatter setLocale:[[NSLocale alloc] initWithLocaleIdentifier:@"gb"]];
     
     self.dateFormatter = dateFormatter;
     
     NSDateFormatter* birthDateFormatter = [[NSDateFormatter alloc] init];
     [birthDateFormatter setDateFormat:@"yyyy-MM-dd"];
     [birthDateFormatter setTimeZone:[NSTimeZone timeZoneWithAbbreviation:@"UTC"]];
+    [birthDateFormatter setLocale:[[NSLocale alloc] initWithLocaleIdentifier:@"gb"]];
     
     self.birthDateFormatter = birthDateFormatter;
     
@@ -51,33 +54,18 @@ static WebEngagePlugin *webEngagePlugin;
 
 -(void)handlePushNotificationPendingDeepLinks {
     
-    /*NSDate* date = [[NSDate alloc] init];
-    double d = [date timeIntervalSinceReferenceDate];
-    NSNumber* refTime = [NSNumber numberWithDouble:d];
-    UIWebView* aWebView = [[UIWebView alloc] init];
-    CGSize screenSize = [UIScreen mainScreen].bounds.size;
-    float width, height;
-    width = screenSize.width;
-    height = screenSize.height;
-    CGRect frame = CGRectMake(0.0, 0.0, width, height/5.0);
-    aWebView.frame = frame;
-    NSString* htmlString = [NSString stringWithFormat:@"<h3>pendingDeepLink at engage:%@</h3>", self.pendingDeepLinkCallback? [self.pendingDeepLinkCallback description]: @"nil"];*/
-    
     AppDelegate* appDelegate = [UIApplication sharedApplication].delegate;
     
     @synchronized (appDelegate) {
         
         if(self.pendingDeepLinkCallback && self.pendingDeepLinkCallback[@"deepLink"]) {
             
-            //htmlString = @"Pending deep link present in engage";
-            
             NSString* deeplink = self.pendingDeepLinkCallback[@"deepLink"];
             NSDictionary* pushData = self.pendingDeepLinkCallback[@"info"];
             
             if (webEngagePlugin && webEngagePlugin.webView) {
                 
-                
-                NSString* res = [(UIWebView*)webEngagePlugin.webView stringByEvaluatingJavaScriptFromString:@"webEngage.push.callbacks.hasOwnProperty('click') && webEngage.push.callbacks.click.length > 0?true: false;"];
+                NSString* res = [WebEngagePlugin evaluateJavaScript:@"webengage.push.clickCallback !== undefined && webengage.push.clickCallback != null?true: false;" onWebView:webEngagePlugin.webView];
                 
                 if ([res isEqualToString: @"true"]) {
                     //If callback is registered fire the callback.
@@ -85,15 +73,12 @@ static WebEngagePlugin *webEngagePlugin;
                     NSData* data = [NSJSONSerialization dataWithJSONObject:pushData options:0 error:nil];
                     NSString* pushDataJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
                     
-                    NSString* string = [NSString stringWithFormat:@"webEngage.push.onCallbackReceived( 'click', %@, '%@')", pushData? pushDataJSON: @"null", deeplink];
-                    
-                    //htmlString = [NSString stringWithFormat:@"callback in engage: %@", string];
+                    NSString* string = [NSString stringWithFormat:@"webengage.push.onCallbackReceived( 'click', %@, '%@')", pushData? pushDataJSON: @"null", deeplink];
                     
                     [self.commandDelegate evalJs:string];
                     
                 } else {
                     
-                    //htmlString = @"firing deep link in engage";
                     NSURL* url = [NSURL URLWithString:deeplink];
                     if (url) {
                         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
@@ -111,10 +96,6 @@ static WebEngagePlugin *webEngagePlugin;
         }
 
     }
-    
-    /*[aWebView loadHTMLString:[NSString stringWithFormat:@"%@ at %@", htmlString , [[NSDate date] description]] baseURL:nil];
-    UIWindow* window = [UIApplication sharedApplication].keyWindow;
-    [window addSubview:aWebView];*/
     
 }
 
@@ -245,7 +226,7 @@ static WebEngagePlugin *webEngagePlugin;
     
     if (userId != nil && userId.length > 0) {
         
-        [[WebEngage sharedInstance].user login: userId];
+        [[WebEngage sharedInstance].user loggedIn: userId];
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     } else {
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
@@ -257,7 +238,7 @@ static WebEngagePlugin *webEngagePlugin;
 - (void)logout:(CDVInvokedUrlCommand*)command {
     
     CDVPluginResult* pluginResult = nil;
-    [[WebEngage sharedInstance].user logout];
+    [[WebEngage sharedInstance].user loggedOut];
     pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
@@ -339,7 +320,7 @@ static WebEngagePlugin *webEngagePlugin;
             
         } else if ([attributeName isEqualToString:WE_HASHED_PHONE]) {
             
-            [[WebEngage sharedInstance].user setEmail:attributeValue];
+            [[WebEngage sharedInstance].user setHashedPhone:attributeValue];
         }
         
         //Any other we_* user attribute is ignored
@@ -357,9 +338,8 @@ static WebEngagePlugin *webEngagePlugin;
         } else if ([resolvedAttributeValue isKindOfClass:[NSArray class]]) {
             [[WebEngage sharedInstance].user setAttribute:attributeName withArrayValue:resolvedAttributeValue];
         } else if ([resolvedAttributeValue isKindOfClass:[NSDictionary class]]) {
-            
-            //TODO: To be included in SDK
-            //[[WebEngage sharedInstance].user setAttribute:attributeName withStringValue:resolvedAttributeValue];
+        
+            [[WebEngage sharedInstance].user setAttribute:attributeName withDictionaryValue:resolvedAttributeValue];
         }
         
     }
@@ -380,34 +360,6 @@ static WebEngagePlugin *webEngagePlugin;
 
 }
 
-
-
-/*-(void) pushReceived:(CDVInvokedUrlCommand*)command {
- 
-    NSDate* date = [[NSDate alloc] init];
- 
-    double d = [date timeIntervalSinceReferenceDate];
-    
-    NSNumber* refTime = [NSNumber numberWithDouble:d];
-    
-    UIWebView* aWebView = [[UIWebView alloc] init];
-    CGSize screenSize = [UIScreen mainScreen].bounds.size;
-    
-    float width, height;
-    width = screenSize.width;
-    height = screenSize.height;
-    
-    CGRect frame = CGRectMake(0.0, height/5.0, width, height/5.0);
-    
-    aWebView.frame = frame;
-    
-    [aWebView loadHTMLString:[NSString stringWithFormat:@"<h3>Push Received at %@</h3>", refTime] baseURL:nil];
-    
-    UIWindow* window = [UIApplication sharedApplication].keyWindow;
-    [window addSubview:aWebView];
-    
-}*/
-
 /** In-App Callbacks **/
 -(NSMutableDictionary *)notificationPrepared:(NSMutableDictionary *)inAppNotificationData 
                                   shouldStop:(BOOL *)stopRendering {
@@ -415,10 +367,11 @@ static WebEngagePlugin *webEngagePlugin;
     NSData* data = [NSJSONSerialization dataWithJSONObject:inAppNotificationData options:0 error:nil];
     NSString* inAppJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
     
-    NSString* resultData = [(UIWebView*)self.webView stringByEvaluatingJavaScriptFromString:
-                                [NSString stringWithFormat:
-                                    @"JSON.stringify(webEngage.inapp.onCallbackReceived( 'prepared', %@))", 
-                                        inAppJSON]];
+    NSString* resultData = [WebEngagePlugin evaluateJavaScript:[NSString stringWithFormat:
+                                                                @"JSON.stringify(webengage.notification.onCallbackReceived( 'prepared', %@))",
+                                                                inAppJSON] onWebView:self.webView];
+    
+    
     NSMutableDictionary* modifiedData = nil;
     if (resultData) {
         
@@ -446,34 +399,54 @@ static WebEngagePlugin *webEngagePlugin;
 
 -(void)notificationShown:(NSMutableDictionary *)inAppNotificationData {
     
-    NSString* inAppJson = [inAppNotificationData description];
+    NSData* data = [NSJSONSerialization dataWithJSONObject:inAppNotificationData options:0 error:nil];
+    NSString* inAppJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
     
     [self.commandDelegate evalJs:
         [NSString stringWithFormat:
-            @"webEngage.inapp.onCallbackReceived( 'shown', %@)", inAppJson]];
+            @"webengage.notification.onCallbackReceived( 'shown', %@)", inAppJSON]];
 
 }
 
 -(void)notificationDismissed:(NSMutableDictionary *)inAppNotificationData {
     
-    NSString* inAppJson = [inAppNotificationData description];
+    NSData* data = [NSJSONSerialization dataWithJSONObject:inAppNotificationData options:0 error:nil];
+    NSString* inAppJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
     
     [self.commandDelegate evalJs:
         [NSString stringWithFormat:
-            @"webEngage.inapp.onCallbackReceived( 'dismiss', %@)", inAppJson]];
+            @"webengage.notification.onCallbackReceived( 'dismiss', %@)", inAppJSON]];
 
 }
 
 -(void)notification:(NSMutableDictionary *)inAppNotificationData 
                             clickedWithAction:(NSString *)actionId {
     
-    NSString* inAppJson = [inAppNotificationData description];
+    NSData* data = [NSJSONSerialization dataWithJSONObject:inAppNotificationData options:0 error:nil];
+    NSString* inAppJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
     
     [self.commandDelegate evalJs:
         [NSString stringWithFormat:
-            @"webEngage.inapp.onCallbackReceived( 'click', %@, '%@')", 
-                inAppJson, actionId]];
+            @"webengage.notification.onCallbackReceived( 'click', %@, '%@')", 
+                inAppJSON, actionId]];
 
 }
 
++(NSString*)evaluateJavaScript:(NSString*)script onWebView:(UIView*)webView{
+    __block NSString* resultData = [[NSString alloc] init];
+    
+    if ([webView isKindOfClass:UIWebView.class]) {
+        UIWebView *webview = (UIWebView*)webView;
+        
+        resultData=[webview stringByEvaluatingJavaScriptFromString:script];
+    }
+    
+    else if ([webView isKindOfClass:WKWebView.class]) {
+        WKWebView *webview = (WKWebView*)webView;
+        [webview evaluateJavaScript:script completionHandler:^(id _Nullable result, NSError * _Nullable error) {
+            resultData=result;
+        }];
+    }
+    return  resultData;
+}
 @end
