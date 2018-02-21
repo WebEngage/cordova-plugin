@@ -512,7 +512,7 @@ function getPlatformPropertyFromWEConfig(platform, property, parsedConfig) {
 }
 
 
-fs.readFile('plugins/cordova-plugin-com-webengage/we_config.xml', function(errFile, weConfig){
+fs.readFile('plugins/cordova-plugin-webengage/we_config.xml', function(errFile, weConfig){
 	if(errFile) {
 		console.log(errFile);
 	} else {

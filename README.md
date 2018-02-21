@@ -7,7 +7,7 @@ The Cordova SDK was tested on Cordova v6.4.0
 
 ## Installation
 
-	cordova plugin add cordova-plugin-com-webengage
+	cordova plugin add cordova-plugin-webengage
 
 ## Integration
 
@@ -23,7 +23,7 @@ To install WebEngage for your Cordova App, you'll need to take three basic steps
 
 ### 1. Global Configuration
 
-1. Open `we_config.xml` file within the `plugins\cordova-plugin-com-webengage` directory inside your app's root directory.
+1. Open `we_config.xml` file within the `plugins\cordova-plugin-webengage` directory inside your app's root directory.
 2. Obtain your license code from the WebEngage dashboard and paste it within the `licenseCode` tag in the xml file.
 
 

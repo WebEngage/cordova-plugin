@@ -1,6 +1,6 @@
 {
   "name": "cordova-plugin-webengage",
-  "version": "0.0.2",
+  "version": "0.0.6",
   "description": "WebEngage Plugin that integrates with WebEngage native SDKs(Android & iOS) to provide engagement capabilities for hybrid applications built with PhoneGap/Cordova",
   "main": "WebEngagePlugin.js",
   "dependencies": {
@@ -29,7 +29,7 @@
   "license": "ISC",
   "engines": {
     "cordovaDependencies": {
-        "0.0.1":  { "cordova-ios": ">=4.0.0", "cordova-android": ">=4.1.0"},
+        "0.0.1":  { "cordova-ios": ">=4.0.0", "cordova-android": ">=4.1.0"}
     }
   }
 }

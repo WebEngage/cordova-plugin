@@ -31,7 +31,7 @@ static WebEngagePlugin *webEngagePlugin;
 }
 
 - (void)pluginInitialize {
-
+    
     [super pluginInitialize];
     webEngagePlugin = self;
     self.pendingDeepLinkCallback = nil;
@@ -65,28 +65,29 @@ static WebEngagePlugin *webEngagePlugin;
             
             if (webEngagePlugin && webEngagePlugin.webView) {
                 
-                NSString* res = [WebEngagePlugin evaluateJavaScript:@"webengage.push.clickCallback !== undefined && webengage.push.clickCallback != null?true: false;" onWebView:webEngagePlugin.webView];
-                
-                if ([res isEqualToString: @"true"]) {
-                    //If callback is registered fire the callback.
+                [WebEngagePlugin evaluateJavaScript:@"webengage.push.clickCallback !== undefined && webengage.push.clickCallback != null?true: false;" onWebView:webEngagePlugin.webView completionHandler:^(NSString * _Nullable response, NSError * _Nullable error) {
                     
-                    NSData* data = [NSJSONSerialization dataWithJSONObject:pushData options:0 error:nil];
-                    NSString* pushDataJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-                    
-                    NSString* string = [NSString stringWithFormat:@"webengage.push.onCallbackReceived( 'click', %@, '%@')", pushData? pushDataJSON: @"null", deeplink];
-                    
-                    [self.commandDelegate evalJs:string];
-                    
-                } else {
-                    
-                    NSURL* url = [NSURL URLWithString:deeplink];
-                    if (url) {
-                        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-                            [[UIApplication sharedApplication] openURL:url];
-                        });
+                    if ([response isEqualToString: @"1"]) {
+                        //If callback is registered fire the callback.
+                        
+                        NSData* data = [NSJSONSerialization dataWithJSONObject:pushData options:0 error:nil];
+                        NSString* pushDataJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+                        
+                        NSString* string = [NSString stringWithFormat:@"webengage.push.onCallbackReceived( 'click', %@, '%@')", pushData? pushDataJSON: @"null", deeplink];
+                        
+                        [self.commandDelegate evalJs:string];
+                        
+                    } else {
+                        
+                        NSURL* url = [NSURL URLWithString:deeplink];
+                        if (url) {
+                            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                                [[UIApplication sharedApplication] openURL:url];
+                            });
+                        }
+                        
                     }
-                    
-                }
+                }];
             }
             self.pendingDeepLinkCallback = nil;
         }
@@ -94,7 +95,7 @@ static WebEngagePlugin *webEngagePlugin;
         if ([appDelegate isFreshLaunch]) {
             [appDelegate setFreshLaunch:NO];
         }
-
+        
     }
     
 }
@@ -160,8 +161,8 @@ static WebEngagePlugin *webEngagePlugin;
         if (eventData && [eventData isKindOfClass:[NSDictionary class]]) {
             
             [[WebEngage sharedInstance].analytics
-                trackEventWithName:eventName
-                          andValue:[self convertISODateStringValuesToNSDate:eventData]];
+             trackEventWithName:eventName
+             andValue:[self convertISODateStringValuesToNSDate:eventData]];
         } else {
             
             [[WebEngage sharedInstance].analytics trackEventWithName:eventName];
@@ -189,8 +190,8 @@ static WebEngagePlugin *webEngagePlugin;
         if (screenData && [screenData isKindOfClass:[NSDictionary class]]) {
             
             [[WebEngage sharedInstance].analytics
-                trackEventWithName:screenName
-                          andValue:[self convertISODateStringValuesToNSDate:screenData]];
+             trackEventWithName:screenName
+             andValue:[self convertISODateStringValuesToNSDate:screenData]];
         } else {
             
             [[WebEngage sharedInstance].analytics trackEventWithName:screenName];
@@ -199,21 +200,21 @@ static WebEngagePlugin *webEngagePlugin;
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         
     } else {
-
+        
         id screenData = command.arguments && command.arguments.count>1?[command.arguments objectAtIndex:1]: nil;
         
         if (screenData && [screenData isKindOfClass:[NSDictionary class]]) {
             
-            [[WebEngage sharedInstance].analytics 
-                updateCurrentScreenData:[self convertISODateStringValuesToNSDate:screenData]];
-
+            [[WebEngage sharedInstance].analytics
+             updateCurrentScreenData:[self convertISODateStringValuesToNSDate:screenData]];
+            
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-
+            
         } else {
             
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
         }
-                
+        
     }
     
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
@@ -260,7 +261,7 @@ static WebEngagePlugin *webEngagePlugin;
     } else {
         
         id attributesDictionary = command.arguments && command.arguments.count>0?
-                                                [command.arguments objectAtIndex:0]: nil;
+        [command.arguments objectAtIndex:0]: nil;
         
         if (attributesDictionary && [attributesDictionary isKindOfClass:[NSDictionary class]]) {
             
@@ -338,7 +339,7 @@ static WebEngagePlugin *webEngagePlugin;
         } else if ([resolvedAttributeValue isKindOfClass:[NSArray class]]) {
             [[WebEngage sharedInstance].user setAttribute:attributeName withArrayValue:resolvedAttributeValue];
         } else if ([resolvedAttributeValue isKindOfClass:[NSDictionary class]]) {
-        
+            
             [[WebEngage sharedInstance].user setAttribute:attributeName withDictionaryValue:resolvedAttributeValue];
         }
         
@@ -357,11 +358,11 @@ static WebEngagePlugin *webEngagePlugin;
     }
     
     return NO;
-
+    
 }
 
 /** In-App Callbacks **/
--(NSMutableDictionary *)notificationPrepared:(NSMutableDictionary *)inAppNotificationData 
+-(NSMutableDictionary *)notificationPrepared:(NSMutableDictionary *)inAppNotificationData
                                   shouldStop:(BOOL *)stopRendering {
     
     NSData* data = [NSJSONSerialization dataWithJSONObject:inAppNotificationData options:0 error:nil];
@@ -378,10 +379,10 @@ static WebEngagePlugin *webEngagePlugin;
         NSData* data = [resultData dataUsingEncoding:NSUTF8StringEncoding];
         if (data) {
             
-            NSMutableDictionary* modifiedData = 
-                [NSJSONSerialization JSONObjectWithData:data 
-                                                options:NSJSONReadingMutableContainers 
-                                                  error:nil];
+            NSMutableDictionary* modifiedData =
+            [NSJSONSerialization JSONObjectWithData:data
+                                            options:NSJSONReadingMutableContainers
+                                              error:nil];
             
             if ([modifiedData[@"stopRendering"] boolValue]) {
                 *stopRendering = YES;
@@ -403,9 +404,9 @@ static WebEngagePlugin *webEngagePlugin;
     NSString* inAppJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
     
     [self.commandDelegate evalJs:
-        [NSString stringWithFormat:
-            @"webengage.notification.onCallbackReceived( 'shown', %@)", inAppJSON]];
-
+     [NSString stringWithFormat:
+      @"webengage.notification.onCallbackReceived( 'shown', %@)", inAppJSON]];
+    
 }
 
 -(void)notificationDismissed:(NSMutableDictionary *)inAppNotificationData {
@@ -414,22 +415,22 @@ static WebEngagePlugin *webEngagePlugin;
     NSString* inAppJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
     
     [self.commandDelegate evalJs:
-        [NSString stringWithFormat:
-            @"webengage.notification.onCallbackReceived( 'dismiss', %@)", inAppJSON]];
-
+     [NSString stringWithFormat:
+      @"webengage.notification.onCallbackReceived( 'dismiss', %@)", inAppJSON]];
+    
 }
 
--(void)notification:(NSMutableDictionary *)inAppNotificationData 
-                            clickedWithAction:(NSString *)actionId {
+-(void)notification:(NSMutableDictionary *)inAppNotificationData
+  clickedWithAction:(NSString *)actionId {
     
     NSData* data = [NSJSONSerialization dataWithJSONObject:inAppNotificationData options:0 error:nil];
     NSString* inAppJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
     
     [self.commandDelegate evalJs:
-        [NSString stringWithFormat:
-            @"webengage.notification.onCallbackReceived( 'click', %@, '%@')", 
-                inAppJSON, actionId]];
-
+     [NSString stringWithFormat:
+      @"webengage.notification.onCallbackReceived( 'click', %@, '%@')",
+      inAppJSON, actionId]];
+    
 }
 
 +(NSString*)evaluateJavaScript:(NSString*)script onWebView:(UIView*)webView{
@@ -449,4 +450,26 @@ static WebEngagePlugin *webEngagePlugin;
     }
     return  resultData;
 }
+
++ (void) evaluateJavaScript:(NSString *)script onWebView:(id)webView
+          completionHandler:(void (^ _Nullable)(NSString * _Nullable response, NSError * _Nullable error))completionHandler {
+    
+    if ([webView isKindOfClass:UIWebView.class]) {
+        UIWebView *webview = (UIWebView*)webView;
+        NSString *response = [webview stringByEvaluatingJavaScriptFromString:script];
+        if (completionHandler) completionHandler(response, nil);
+    }
+    
+    else if ([webView isKindOfClass:WKWebView.class]) {
+        WKWebView *webview = (WKWebView*)webView;
+        [webview evaluateJavaScript:script completionHandler:^(id result, NSError *error) {
+            if (completionHandler) {
+                if (error) completionHandler(nil, error);
+                else completionHandler([NSString stringWithFormat:@"%@", result], nil);
+            }
+        }];
+    }
+    
+}
 @end
+

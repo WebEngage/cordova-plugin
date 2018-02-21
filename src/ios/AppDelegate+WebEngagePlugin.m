@@ -24,15 +24,15 @@
 
 @implementation AppDelegate (WebEngagePlugin)
 
-+ (void)load {    
++ (void)load {
     
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(applicationFinishedLaunching:)
                                                  name:UIApplicationDidFinishLaunchingNotification object:nil];
     
 }
 
-+ (void) applicationFinishedLaunching:(NSNotification *) notification {  
-
++ (void) applicationFinishedLaunching:(NSNotification *) notification {
+    
     AppDelegate* appDelegate = [UIApplication sharedApplication].delegate;
     
     @synchronized (appDelegate) {
@@ -51,7 +51,7 @@
               didFinishLaunchingWithOptions:notification.userInfo
                        notificationDelegate:webEngagePlugin
                                autoRegister:autoRegister];
-
+    
 }
 
 -(void)WEGHandleDeeplink:(NSString*) deeplink userData:(NSDictionary*)pushData {
@@ -68,30 +68,29 @@
             //Case where push notification is clicked from App background
             if (!webEngagePluginUtils.freshLaunch) {
                 
-                NSString* res = [WebEngagePlugin evaluateJavaScript:@"webengage.push.clickCallback !== undefined && webengage.push.clickCallback != null?true: false;" onWebView:webEngagePlugin.webView];
-        
-                //This is invocation from background. Check if the callback is registered.
-                if ([res isEqualToString: @"true"]) {
+                [WebEngagePlugin evaluateJavaScript:@"webengage.push.clickCallback !== undefined && webengage.push.clickCallback != null?true: false;" onWebView:webEngagePlugin.webView completionHandler:^(NSString * _Nullable response, NSError * _Nullable error) {
                     
-                    //case where app is invoked from background and click callback is registered
-                    NSData* data = [NSJSONSerialization dataWithJSONObject:pushData options:0 error:nil];
-                    NSString* pushDataJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-                    
-                    [webEngagePlugin.commandDelegate evalJs:
-                     [NSString stringWithFormat:@"webengage.push.onCallbackReceived( 'click', %@, '%@')",
-                      pushDataJSON, deeplink]];
-                } else {
-                    
-                    NSURL* url = [NSURL URLWithString:deeplink];
-                    if (url) {
-                        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-                            [[UIApplication sharedApplication] openURL:url];
-                        });
+                    //This is invocation from background. Check if the callback is registered.
+                    if ([response isEqualToString: @"1"]) {
+                        
+                        //case where app is invoked from background and click callback is registered
+                        NSData* data = [NSJSONSerialization dataWithJSONObject:pushData options:0 error:nil];
+                        NSString* pushDataJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+                        
+                        [webEngagePlugin.commandDelegate evalJs:
+                         [NSString stringWithFormat:@"webengage.push.onCallbackReceived( 'click', %@, '%@')",
+                          pushDataJSON, deeplink]];
+                    } else {
+                        
+                        NSURL* url = [NSURL URLWithString:deeplink];
+                        if (url) {
+                            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                                [[UIApplication sharedApplication] openURL:url];
+                            });
+                        }
+                        
                     }
-
-                }
-
-            
+                }];
             } else {
                 
                 webEngagePlugin.pendingDeepLinkCallback = [@{@"deepLink": deeplink,
@@ -107,5 +106,5 @@
 -(void) setFreshLaunch:(BOOL) freshLaunch {
     [WebEngagePluginUtils sharedInstance].freshLaunch = freshLaunch;
 }
-
 @end
+

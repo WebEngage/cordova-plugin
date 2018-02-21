@@ -1,7 +1,7 @@
 #import "AppDelegate+WebEngagePlugin.h"
 
 @interface WebEngagePlugin : CDVPlugin<WEGInAppNotificationProtocol>
-  
+
 @property (strong, nonatomic, readwrite) NSString* onActiveCallbackId;
 @property (strong, nonatomic, readwrite) NSMutableDictionary* pendingDeepLinkCallback;
 
@@ -23,5 +23,7 @@
 -(void) track:(CDVInvokedUrlCommand*)command;
 -(void) setAttribute:(CDVInvokedUrlCommand*)command;
 
-+(NSString*)evaluateJavaScript:(NSString*)script onWebView:(UIView*)webView;
++ (void) evaluateJavaScript:(NSString *)script onWebView:(id)webView
+          completionHandler:(void (^ _Nullable)(NSString * _Nullable response, NSError * _Nullable error))completionHandler;
 @end
+
