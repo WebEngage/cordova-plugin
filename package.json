@@ -30,6 +30,6 @@
   "engines": {
     "cordovaDependencies": {
         "0.0.1":  { "cordova-ios": ">=4.0.0", "cordova-android": ">=4.1.0"}
-    }
+      }
   }
 }

@@ -85,7 +85,7 @@ static WebEngagePlugin *webEngagePlugin;
                                 [[UIApplication sharedApplication] openURL:url];
                             });
                         }
-                        
+                    
                     }
                 }];
             }
@@ -339,7 +339,6 @@ static WebEngagePlugin *webEngagePlugin;
         } else if ([resolvedAttributeValue isKindOfClass:[NSArray class]]) {
             [[WebEngage sharedInstance].user setAttribute:attributeName withArrayValue:resolvedAttributeValue];
         } else if ([resolvedAttributeValue isKindOfClass:[NSDictionary class]]) {
-            
             [[WebEngage sharedInstance].user setAttribute:attributeName withDictionaryValue:resolvedAttributeValue];
         }
         
@@ -358,7 +357,6 @@ static WebEngagePlugin *webEngagePlugin;
     }
     
     return NO;
-    
 }
 
 /** In-App Callbacks **/
@@ -372,7 +370,7 @@ static WebEngagePlugin *webEngagePlugin;
                                                                 @"JSON.stringify(webengage.notification.onCallbackReceived( 'prepared', %@))",
                                                                 inAppJSON] onWebView:self.webView];
     
-    
+
     NSMutableDictionary* modifiedData = nil;
     if (resultData) {
         
@@ -406,7 +404,7 @@ static WebEngagePlugin *webEngagePlugin;
     [self.commandDelegate evalJs:
      [NSString stringWithFormat:
       @"webengage.notification.onCallbackReceived( 'shown', %@)", inAppJSON]];
-    
+
 }
 
 -(void)notificationDismissed:(NSMutableDictionary *)inAppNotificationData {
@@ -417,7 +415,7 @@ static WebEngagePlugin *webEngagePlugin;
     [self.commandDelegate evalJs:
      [NSString stringWithFormat:
       @"webengage.notification.onCallbackReceived( 'dismiss', %@)", inAppJSON]];
-    
+
 }
 
 -(void)notification:(NSMutableDictionary *)inAppNotificationData

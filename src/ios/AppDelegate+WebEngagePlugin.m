@@ -88,7 +88,6 @@
                                 [[UIApplication sharedApplication] openURL:url];
                             });
                         }
-                        
                     }
                 }];
             } else {
