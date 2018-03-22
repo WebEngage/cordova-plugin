@@ -438,8 +438,12 @@ function updateInfoPList(infoPlistFileData, context) {
 }
 
 function performedAndroidOperations(parsedConfig) {
+	var manifestPath = 'platforms/android/AndroidManifest.xml';
+	if(!fs.existsSync(manifestPath)) {
+		manifestPath = 'platforms/android/app/src/main/AndroidManifest.xml'; //as of cordova android 7.0.0, manifest path has been changed
+	}
 	
-	fs.readFile('platforms/android/AndroidManifest.xml', function(err, manifestFile){
+	fs.readFile(manifestPath, function(err, manifestFile){
 
 		if(err){
 			console.log(err);
@@ -455,7 +459,7 @@ function performedAndroidOperations(parsedConfig) {
 					result.manifest = addPermissions(result.manifest, parsedConfig);
 					var xml = new xml2js.Builder().buildObject(result);
 					try {
-						fs.writeFileSync('platforms/android/AndroidManifest.xml', xml);
+						fs.writeFileSync(manifestPath, xml);
 					}
 					catch (e) {
 						process.stdout.write(e);
