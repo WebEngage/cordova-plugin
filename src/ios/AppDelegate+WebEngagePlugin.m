@@ -1,17 +1,16 @@
 #import <WebEngage/WebEngage.h>
 #import "AppDelegate+WebEngagePlugin.h"
 
-
 @interface WebEngagePluginUtils : NSObject
 
-+(instancetype) sharedInstance;
++ (instancetype)sharedInstance;
 @property (atomic, readwrite) BOOL freshLaunch;
 
 @end
 
 @implementation WebEngagePluginUtils
 
-+(instancetype) sharedInstance {
++ (instancetype)sharedInstance {
     static WebEngagePluginUtils *sharedInstance = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^ {
@@ -25,37 +24,18 @@
 @implementation AppDelegate (WebEngagePlugin)
 
 + (void)load {
-    
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(applicationFinishedLaunching:)
                                                  name:UIApplicationDidFinishLaunchingNotification object:nil];
-    
 }
 
-+ (void) applicationFinishedLaunching:(NSNotification *) notification {
-    
++ (void)applicationFinishedLaunching:(NSNotification *)notification {
     AppDelegate* appDelegate = [UIApplication sharedApplication].delegate;
-    
     @synchronized (appDelegate) {
         [WebEngagePluginUtils sharedInstance].freshLaunch = YES;
     }
-    
-    WebEngagePlugin* webEngagePlugin = [WebEngagePlugin webEngagePlugin];
-    
-    id apnsRegistration = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"WEGApnsAutoRegister"];
-    
-    BOOL autoRegister = YES;
-    if (apnsRegistration != nil) {
-        autoRegister = [apnsRegistration boolValue];
-    }
-    [[WebEngage sharedInstance] application:notification.object
-              didFinishLaunchingWithOptions:notification.userInfo
-                       notificationDelegate:webEngagePlugin
-                               autoRegister:autoRegister];
-    
 }
 
--(void)WEGHandleDeeplink:(NSString*) deeplink userData:(NSDictionary*)pushData {
-    
+- (void)WEGHandleDeeplink:(NSString *)deeplink userData:(NSDictionary *)pushData {
     WebEngagePlugin* webEngagePlugin = [WebEngagePlugin webEngagePlugin];
     
     if (webEngagePlugin && webEngagePlugin.webView) {
@@ -91,7 +71,6 @@
                     }
                 }];
             } else {
-                
                 webEngagePlugin.pendingDeepLinkCallback = [@{@"deepLink": deeplink,
                                                              @"info": pushData} mutableCopy];
             }
@@ -99,11 +78,12 @@
     }
 }
 
--(BOOL) isFreshLaunch {
+- (BOOL)isFreshLaunch {
     return [WebEngagePluginUtils sharedInstance].freshLaunch;
 }
--(void) setFreshLaunch:(BOOL) freshLaunch {
+
+- (void)setFreshLaunch:(BOOL)freshLaunch {
     [WebEngagePluginUtils sharedInstance].freshLaunch = freshLaunch;
 }
-@end
 
+@end
