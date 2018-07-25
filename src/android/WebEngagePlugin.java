@@ -17,6 +17,7 @@ import android.content.Context;
 import android.location.Location;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 
 import android.media.RingtoneManager;
 
@@ -74,18 +75,18 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     private static final String HASHED_PHONE = "we_hashed_phone";
 
     static {
-        Logger.v(TAG, "Static Block called");
+        Log.d(TAG, "Static Block called");
     }
 
     public WebEngagePlugin() {
-        Logger.v(TAG, "Constructor called");
+        Log.d(TAG, "Constructor called");
     }
 
     @Override
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         super.initialize(cordova, webView);
         this.webView = webView;
-        Logger.v(TAG, "Intialized");
+        Log.d(TAG, "Intialized");
     }
     
     @Override
