@@ -57,7 +57,6 @@
         <source-file src="src/android/WebEngagePlugin.java" target-dir="src/com/webengage/cordova/"/>
         <framework src="src/android/WebEngagePlugin.gradle" custom="true" type="gradleReference"/>
     </platform>
-    
-    <hook src="hooks/we_config.js" type="after_plugin_add" />
-    <hook src="hooks/we_config.js" type="after_prepare" />
+
+    <hook src="hooks/migrate.js" type="after_plugin_add" />
 </plugin>

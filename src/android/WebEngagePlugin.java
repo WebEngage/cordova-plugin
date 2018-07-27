@@ -38,6 +38,7 @@ import java.text.SimpleDateFormat;
 import com.webengage.sdk.android.Logger;
 import com.webengage.sdk.android.WebEngage;
 import com.webengage.sdk.android.WebEngageConfig;
+import com.webengage.sdk.android.LocationTrackingStrategy;
 import com.webengage.sdk.android.callbacks.PushNotificationCallbacks;
 import com.webengage.sdk.android.actions.render.PushNotificationData;
 import com.webengage.sdk.android.actions.render.InAppNotificationData;
@@ -117,6 +118,17 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                 if (!androidConfig.isNull("pushProjectNumber")) {
                     configBuilder.setGCMProjectNumber(androidConfig.optString("pushProjectNumber"));
                 }
+                if (!androidConfig.isNull("locationTrackingStrategy")) {
+                    if ("accuracy_best".equals(androidConfig.optString("locationTrackingStrategy"))) {
+                        configBuilder.setLocationTrackingStrategy(LocationTrackingStrategy.ACCURACY_BEST);
+                    } else if ("accuracy_city".equals(androidConfig.optString("locationTrackingStrategy"))) {
+                        configBuilder.setLocationTrackingStrategy(LocationTrackingStrategy.ACCURACY_CITY);
+                    } else if ("accuracy_country".equals(androidConfig.optString("locationTrackingStrategy"))) {
+                        configBuilder.setLocationTrackingStrategy(LocationTrackingStrategy.ACCURACY_COUNTRY);
+                    } else if ("disabled".equals(androidConfig.optString("locationTrackingStrategy"))) {
+                        configBuilder.setLocationTrackingStrategy(LocationTrackingStrategy.DISABLED);
+                    }
+                }
 
                 WebEngage.engage(cordova.getActivity().getApplicationContext(), configBuilder.build());
             } else {
@@ -157,7 +169,7 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
 
                     }
                 }
-                Logger.v(TAG, eventName + " " + attributes);
+                Logger.d(TAG, eventName + " " + attributes);
                 if (eventName != null) {
                     if (attributes == null) {
                         WebEngage.get().analytics().track(eventName);
@@ -272,14 +284,14 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
 
     @Override
     public void onStart() {
-        Logger.v(TAG,"Activity Start");
+        Logger.d(TAG,"Activity Start");
         WebEngage.get().analytics().start(cordova.getActivity());
         super.onStart();
     }
     
     @Override
     public void onStop() {
-        Logger.v(TAG,"Activity Stop");
+        Logger.d(TAG,"Activity Stop");
         WebEngage.get().analytics().stop(cordova.getActivity());
         super.onStop();
     }
@@ -302,7 +314,7 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         IS_PUSH_CALLBACK_PENDING = true;
         PENDING_PUSH_URI = uri;
         PENDING_PUSH_CUSTOM_DATA = bundleToJson(data);
-        Logger.v(TAG, "handlePushClick invoked");
+        Logger.d(TAG, "handlePushClick invoked");
     }
 
     @Override
