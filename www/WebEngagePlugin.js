@@ -12,7 +12,11 @@ WebEngagePlugin.prototype.engage = function() {
 };
 
 WebEngagePlugin.prototype.engage = function(config) {
-	exec(null, null, "WebEngagePlugin", "engage", [config]);
+	if (config) {
+		exec(null, null, "WebEngagePlugin", "engage", [config]);
+	} else {
+		exec(null, null, "WebEngagePlugin", "engage",[]);
+	}
 }
 
 WebEngagePlugin.prototype.options = function(key, value) {
