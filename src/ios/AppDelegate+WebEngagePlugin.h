@@ -3,7 +3,7 @@
 
 @interface AppDelegate (WebEngagePlugin)
 
--(BOOL) isFreshLaunch;
--(void) setFreshLaunch:(BOOL) freshLaunch;
+- (BOOL)isFreshLaunch;
+- (void)setFreshLaunch:(BOOL)freshLaunch;
 
 @end
