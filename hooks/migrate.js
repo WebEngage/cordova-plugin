@@ -81,6 +81,15 @@ function migrateMetaData(manifest, config) {
 
 			var webengageMetaData = metaData.filter(webengageMetaDataFilter);
 			if (webengageMetaData != null && webengageMetaData.length > 0) {
+				if (!config['$']) {
+					console.log("no attribute");
+					config['$'] = {"xmlns:android": "http://schemas.android.com/apk/res/android"};
+				}
+
+				if (!config['$']['xmlns:android']) {
+					config['$']['xmlns:android'] = "http://schemas.android.com/apk/res/android";
+				}
+
 				var platforms = config.platform;
 				var androidPlatform = platforms.filter(androidPlatformFilter);
 				if (androidPlatform == null || androidPlatform.length == 0) {
