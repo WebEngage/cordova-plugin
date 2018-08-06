@@ -82,7 +82,6 @@ function migrateMetaData(manifest, config) {
 			var webengageMetaData = metaData.filter(webengageMetaDataFilter);
 			if (webengageMetaData != null && webengageMetaData.length > 0) {
 				if (!config['$']) {
-					console.log("no attribute");
 					config['$'] = {"xmlns:android": "http://schemas.android.com/apk/res/android"};
 				}
 
