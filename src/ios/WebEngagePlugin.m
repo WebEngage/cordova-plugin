@@ -143,7 +143,8 @@ static WebEngagePlugin *webEngagePlugin;
 }
 
 - (void)engage:(CDVInvokedUrlCommand *)command {
-    if (command.arguments && command.arguments.count > 0 && [[command.arguments objectAtIndex:0] isKindOfClass:[NSDictionary class]] && [[command.arguments objectAtIndex:0] objectForKey:@"licenseCode"]) {
+    // TODO: Uncomment this when iOS SDK supports dynamic configuration.
+    /*if (command.arguments && command.arguments.count > 0 && [[command.arguments objectAtIndex:0] isKindOfClass:[NSDictionary class]] && [[command.arguments objectAtIndex:0] objectForKey:@"licenseCode"]) {
         id config = [command.arguments objectAtIndex:0];
 
         NSString *licenseCode = [config objectForKey:@"licenseCode"];
@@ -196,7 +197,7 @@ static WebEngagePlugin *webEngagePlugin;
         } else {
             NSLog(@"WebEngage initialization failed");
         }
-    }
+    }*/
 
     [self handlePushNotificationPendingDeepLinks];
 }

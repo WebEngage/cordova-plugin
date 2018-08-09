@@ -33,6 +33,19 @@
     @synchronized (appDelegate) {
         [WebEngagePluginUtils sharedInstance].freshLaunch = YES;
     }
+
+    WebEngagePlugin* webEngagePlugin = [WebEngagePlugin webEngagePlugin];
+    
+    id apnsRegistration = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"WEGApnsAutoRegister"];
+    
+    BOOL autoRegister = YES;
+    if (apnsRegistration != nil) {
+        autoRegister = [apnsRegistration boolValue];
+    }
+    [[WebEngage sharedInstance] application:notification.object
+              didFinishLaunchingWithOptions:notification.userInfo
+                       notificationDelegate:webEngagePlugin
+                               autoRegister:autoRegister];
 }
 
 - (void)WEGHandleDeeplink:(NSString *)deeplink userData:(NSDictionary *)pushData {
