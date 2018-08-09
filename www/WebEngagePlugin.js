@@ -7,15 +7,11 @@ function WebEngagePlugin() {
 	this._options = {};
 }
 
-WebEngagePlugin.prototype.engage = function() {
-	exec(null, null, "WebEngagePlugin", "engage",[]);
-};
-
 WebEngagePlugin.prototype.engage = function(config) {
 	if (config) {
 		exec(null, null, "WebEngagePlugin", "engage", [config]);
 	} else {
-		exec(null, null, "WebEngagePlugin", "engage",[]);
+		exec(null, null, "WebEngagePlugin", "engage", []);
 	}
 }
 

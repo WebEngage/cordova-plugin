@@ -143,33 +143,38 @@ static WebEngagePlugin *webEngagePlugin;
 }
 
 - (void)engage:(CDVInvokedUrlCommand *)command {
-    if (command.arguments && command.arguments.count > 0) {
+    if (command.arguments && command.arguments.count > 0 && [[command.arguments objectAtIndex:0] isKindOfClass:[NSDictionary class]] && [[command.arguments objectAtIndex:0] objectForKey:@"licenseCode"]) {
         id config = [command.arguments objectAtIndex:0];
-        if (config && [config isKindOfClass:[NSDictionary class]]) {
-            NSString *licenseCode = [config objectForKey:@"licenseCode"];
-            BOOL debug = [config objectForKey:@"debug"];
-            BOOL apnsAutoRegister = false;
 
-            id iosConfig = [config objectForKey:@"ios"];
-            if (iosConfig && [iosConfig isKindOfClass:[NSDictionary class]]) {
+        NSString *licenseCode = [config objectForKey:@"licenseCode"];
+
+        BOOL debug = false;
+        if ([config objectForKey:@"debug"]) {
+            debug = [config objectForKey:@"debug"];
+        }
+
+        BOOL apnsAutoRegister = true;
+        id iosConfig = [config objectForKey:@"ios"];
+        if (iosConfig && [iosConfig isKindOfClass:[NSDictionary class]]) {
+            if ([iosConfig objectForKey:@"apnsAutoRegister"]) {
                 apnsAutoRegister = [iosConfig objectForKey:@"apnsAutoRegister"];
             }
-            
-            NSDictionary *settings = @{@"licenseCode": licenseCode};
-            NSDictionary *launchOptions = @{};
+        }
 
-            BOOL success = [[WebEngage sharedInstance] application:[UIApplication sharedApplication] didFinishLaunchingWithOptions: @{
-                    @"WebEngage": settings,
-                    @"launchOptions": launchOptions
-                } 
-                notificationDelegate:nil 
-                autoRegister:apnsAutoRegister];
+        NSDictionary *settings = @{@"licenseCode": licenseCode};
+        NSDictionary *launchOptions = @{};
 
-            if (success) {
-                NSLog(@"WebEngage successfully initialized");
-            } else {
-                NSLog(@"WebEngage initialization failed");
+        BOOL success = [[WebEngage sharedInstance] application:[UIApplication sharedApplication] didFinishLaunchingWithOptions: @{
+                @"WebEngage": settings,
+                @"launchOptions": launchOptions
             }
+            notificationDelegate:nil
+            autoRegister:apnsAutoRegister];
+
+        if (success) {
+            NSLog(@"WebEngage successfully initialized with config");
+        } else {
+            NSLog(@"WebEngage initialization with config failed");
         }
     } else {
         WebEngagePlugin *webEngagePlugin = [WebEngagePlugin webEngagePlugin];
@@ -180,13 +185,20 @@ static WebEngagePlugin *webEngagePlugin;
         if (apnsRegistration != nil) {
             autoRegister = [apnsRegistration boolValue];
         }
-        [[WebEngage sharedInstance] application:[UIApplication sharedApplication]
+
+        BOOL success = [[WebEngage sharedInstance] application:[UIApplication sharedApplication]
                   didFinishLaunchingWithOptions:@{}
                            notificationDelegate:webEngagePlugin
                                    autoRegister:autoRegister];
 
-        [self handlePushNotificationPendingDeepLinks];
+        if (success) {
+            NSLog(@"WebEngage successfully initialized");
+        } else {
+            NSLog(@"WebEngage initialization failed");
+        }
     }
+
+    [self handlePushNotificationPendingDeepLinks];
 }
 
 - (void)track:(CDVInvokedUrlCommand *)command {

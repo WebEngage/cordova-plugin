@@ -1,5 +1,8 @@
 var fs = require('fs');
 var xml2js = require('xml2js');
+var plist = require('plist');
+
+const exec = require('child_process').exec;
 
 var androidMetaDataKeys = ["com.webengage.sdk.android.key", 
 	"com.webengage.sdk.android.debug", 
@@ -18,39 +21,6 @@ function checkValidXml2jsNode(node) {
 	return node && node instanceof Array && node.length > 0 ;
 }
 
-function getAndroidManifestPath() {
-	var manifestPath = 'platforms/android/AndroidManifest.xml';
-
-	// As of cordova android 7.0.0, manifest path has been changed
-	if (!fs.existsSync(manifestPath)) {
-		manifestPath = 'platforms/android/app/src/main/AndroidManifest.xml';
-	}
-	
-	return manifestPath;
-}
-
-function webengageMetaDataFilter(metaData) {
-	return (metaData && metaData['$'] && androidMetaDataKeys.indexOf(metaData['$']['android:name']) > -1);
-};
-
-function androidPlatformFilter(platform) {
-    return (platform && platform['$'] && platform['$']['name'] === "android");
-}
-
-function configFileFilter(configFile) {
-    return (configFile && configFile['$'] && configFile['$']['parent'] === "/manifest/application");
-}
-
-function manifestFilter(configFile) {
-	return (configFile && configFile['$'] && configFile['$']['parent'] === "/manifest");
-}
-
-var configMetaDataNames = [];
-
-function metaDataDedupingFilter(webengageMetaData) {
-	return !(webengageMetaData && webengageMetaData['$'] && configMetaDataNames.indexOf(webengageMetaData['$']['android:name']) > -1);
-}
-
 function getAutoGcmRegistration(metaData) {
 	if (metaData == null || metaData.length == 0) {
 		return false;
@@ -67,8 +37,17 @@ function getAutoGcmRegistration(metaData) {
 	return false;
 }
 
-function pushReceiverFilter(receiver) {
-	return (receiver && receiver['$'] && receiver['$']['android:name'] == "com.webengage.sdk.android.WebEngagePushReceiver");
+function getPushReceiver() {
+	var receiver = {"intent-filter": []};
+	receiver['$'] = {"android:name": "com.webengage.sdk.android.WebEngagePushReceiver", "android:permission": "com.google.android.c2dm.permission.SEND"};
+	var action = {};
+	action['$'] = {"android:name": "com.google.android.c2dm.intent.RECEIVE"};
+	var category = {};
+	category['$'] = {"android:name": "${applicationId}"};
+	receiver['intent-filter'] = {"action": [], "category": []};
+	receiver['intent-filter']['action'] = action;
+	receiver['intent-filter']['category'] = category;
+	return receiver;
 }
 
 function migrateMetaData(manifest, config) {
@@ -79,7 +58,9 @@ function migrateMetaData(manifest, config) {
 				return config;
 			}
 
-			var webengageMetaData = metaData.filter(webengageMetaDataFilter);
+			var webengageMetaData = metaData.filter(
+				metaData => (metaData && metaData['$'] && androidMetaDataKeys.indexOf(metaData['$']['android:name']) > -1)
+			);
 			if (webengageMetaData != null && webengageMetaData.length > 0) {
 				if (!config['$']) {
 					config['$'] = {"xmlns:android": "http://schemas.android.com/apk/res/android"};
@@ -90,7 +71,9 @@ function migrateMetaData(manifest, config) {
 				}
 
 				var platforms = config.platform;
-				var androidPlatform = platforms.filter(androidPlatformFilter);
+				var androidPlatform = platforms.filter(
+					platform => (platform && platform['$'] && platform['$']['name'] === "android")
+				);
 				if (androidPlatform == null || androidPlatform.length == 0) {
 					androidPlatform[0] = {"platform": []};
 					androidPlatform[0]['$'] = {"name": "android"};
@@ -103,40 +86,47 @@ function migrateMetaData(manifest, config) {
 					androidPlatform[0]['config-file'] = platformConfigFiles;
 				}
 
-				var configFile = platformConfigFiles.filter(configFileFilter);
-				if (configFile == null) {
-					configFile = new Array();
+				var configFiles = platformConfigFiles.filter(
+					configFile => (configFile && configFile['$'] && configFile['$']['parent'] === "/manifest/application")
+				);
+				if (configFiles === null) {
+					configFiles = new Array();
 				}
 
-				if (configFile.length == 0) {
-					configFile[0] = {"meta-data": []};
-					configFile[0]['$'] = {"parent": "/manifest/application", "target": "AndroidManifest.xml"};
-					platformConfigFiles.push(configFile[0]);
+				if (configFiles.length === 0) {
+					configFiles[0] = {"meta-data": []};
+					configFiles[0]['$'] = {"parent": "/manifest/application", "target": "AndroidManifest.xml"};
+					platformConfigFiles.push(configFiles[0]);
 				}
 
-				var configMetaData = configFile[0]['meta-data'];
+				var configMetaData = configFiles[0]['meta-data'];
 				if (configMetaData == null || configMetaData.length == 0) {
 					configMetaData = new Array();
 					for (var i = 0; i < webengageMetaData.length; i++) {
 						configMetaData.push(webengageMetaData[i]);
 					}
-					configFile[0]['meta-data'] = configMetaData;
+					configFiles[0]['meta-data'] = configMetaData;
 				} else {
+					var configMetaDataNames = [];
 					for (var i = 0; i < configMetaData.length; i++) {
 						if (configMetaData[i]['$']) {
 							configMetaDataNames.push(configMetaData[i]['$']['android:name']);
 						}
 					}
-					webengageMetaData = webengageMetaData.filter(metaDataDedupingFilter);
+					webengageMetaData = webengageMetaData.filter(
+						metaData => !(metaData && metaData['$'] && configMetaDataNames.indexOf(metaData['$']['android:name']) > -1)
+					);
 					for (var i = 0; i < webengageMetaData.length; i++) {
 						configMetaData.push(webengageMetaData[i]);
 					}
 				}
-				
+
 				var registerAutoGcm = getAutoGcmRegistration(configMetaData);
 				if (registerAutoGcm) {
 					// Add push permissions
-					var manifestConfigFile = platformConfigFiles.filter(manifestFilter);
+					var manifestConfigFile = platformConfigFiles.filter(
+						configFile => (configFile && configFile['$'] && configFile['$']['parent'] === "/manifest")
+					);
 					if (manifestConfigFile == null || manifestConfigFile.length == 0) {
 						manifestConfigFile = [];
 						manifestConfigFile[0] = {"uses-permission": [], "permission": []};
@@ -189,145 +179,217 @@ function migrateMetaData(manifest, config) {
 					}
 
 					// Add PushReceiver
-					var receivers = configFile[0]['receiver'];
+					var receivers = configFiles[0]['receiver'];
 					if (receivers == null || receivers.length == 0) {
 						receivers = new Array();
-						receivers[0] = {"intent-filter": []};
-						receivers[0]['$'] = {"android:name": "com.webengage.sdk.android.WebEngagePushReceiver", "android:permission": "com.google.android.c2dm.permission.SEND"};
-						var action = {};
-						action['$'] = {"android:name": "com.google.android.c2dm.intent.RECEIVE"};
-						var category = {};
-						category['$'] = {"android:name": "${applicationId}"};
-						receivers[0]['intent-filter'] = {"action": [], "category": []};
-						receivers[0]['intent-filter']['action'] = action;
-						receivers[0]['intent-filter']['category'] = category;
-						configFile[0]['receiver'] = receivers;
+						receivers[0] = getPushReceiver();
+						configFiles[0]['receiver'] = receivers;
 					} else {
-						var prevReceiver = receivers.filter(pushReceiverFilter);
-						if (prevReceiver == null || prevReceiver.length == 0) {
-							var receiver = {"intent-filter": []};
-							receiver['$'] = {"android:name": "com.webengage.sdk.android.WebEngagePushReceiver", "android:permission": "com.google.android.c2dm.permission.SEND"};
-							var action = {};
-							action['$'] = {"android:name": "com.google.android.c2dm.intent.RECEIVE"};
-							var category = {};
-							category['$'] = {"android:name": "${applicationId}"};
-							receiver['intent-filter'] = {"action": [], "category": []};
-							receiver['intent-filter']['action'] = action;
-							receiver['intent-filter']['category'] = category;
-							receivers.push(receiver);
+						var prevReceivers = receivers.filter(
+							receiver => (receiver && receiver['$'] && receiver['$']['android:name'] == "com.webengage.sdk.android.WebEngagePushReceiver")
+						);
+						if (!prevReceivers || prevReceivers === null || prevReceivers.length === 0) {
+							receivers.push(getPushReceiver());
 						}
 					}
 				}
 			}
 		}
 	} catch(e) {
-		console.log("Error migrating meta-data");
+		console.log("Error migrating Android meta-data to config.xml");
 	}
     return config;
 }
 
-function metaDataFilter(metaData) {
-	return !(metaData && metaData['$'] && androidMetaDataKeys.indexOf(metaData['$']['android:name']) > -1);
-};
-
 function removeMetaData(manifest) {
 	if (checkValidXml2jsNode(manifest.application)) {
-		var metaData = manifest.application[0]['meta-data'];
-		metaData = (checkValidXml2jsNode(metaData)) ? metaData.filter(metaDataFilter) : [];
-		manifest.application[0]['meta-data'] = metaData;
+		var manifestMetaData = manifest.application[0]['meta-data'];
+		manifestMetaData = (checkValidXml2jsNode(manifestMetaData)) ? manifestMetaData.filter(metaData => !(metaData && metaData['$'] && androidMetaDataKeys.indexOf(metaData['$']['android:name']) > -1)) : [];
+		manifest.application[0]['meta-data'] = manifestMetaData;
 	}
 	return manifest;
-}
-
-function receiverFilter(receiver) {
-	return !(receiver && receiver['$'] && androidReceivers.indexOf(receiver['$']['android:name']) > -1);
 }
 
 function removeReceivers(manifest) {
 	if (checkValidXml2jsNode(manifest.application)) {
 		var receivers = manifest.application[0].receiver;
-		receivers = checkValidXml2jsNode(receivers) ? receivers.filter(receiverFilter) : [];
+		receivers = checkValidXml2jsNode(receivers) ? receivers.filter(receiver => !(receiver && receiver['$'] && androidReceivers.indexOf(receiver['$']['android:name']) > -1)) : [];
 		manifest.application[0].receiver = receivers;
 	}
 	return manifest;
 }
 
-function updateAndroidManifest() {
-    var manifestPath = getAndroidManifestPath();
-    if (!fs.existsSync(manifestPath)) {
-        return;
-    }
-    
-    fs.readFile(manifestPath, function(readError, manifestFile) {
-		if (readError) {
-			console.log(readError);
-		} else {
-            xml2js.parseString(manifestFile.toString(), function(err, result) {
-				if (err) {
-					console.log(err);
-				} else {
-					result.manifest = removeMetaData(result.manifest);
-					result.manifest = removeReceivers(result.manifest);
-					var xml = new xml2js.Builder().buildObject(result);
-					try {
-						fs.writeFileSync(manifestPath, xml);
-					} catch(e) {
-						process.stdout.write(e);
-					}
-				}
-			});
-        }
-    });
-}
+function migrateAndroid(config, callback) {
+	try {
+		var manifestPath = 'platforms/android/AndroidManifest.xml';
 
-function updateConfig() {
-	var manifestPath = getAndroidManifestPath();
-	if (!fs.existsSync(manifestPath)) {
-        return;
-    }
+		// As of cordova android 7.0.0, manifest path has been changed
+		if (!fs.existsSync(manifestPath)) {
+			manifestPath = 'platforms/android/app/src/main/AndroidManifest.xml';
+		}
 
-	fs.readFile(manifestPath, function(manifestReadError, manifest) {
-		if (manifestReadError) {
-			console.log("Error reading AndroidManifest file: " + manifestReadError);
+		if (!fs.existsSync(manifestPath)) {
+			callback(config);
 		} else {
+			var manifest = fs.readFileSync(manifestPath);
 			xml2js.parseString(manifest.toString(), function(manifestParseError, manifestResult) {
 				if (manifestParseError) {
 					console.log("Error parsing AndroidManifest file: " + manifestParseError);
+					callback(config);
 				} else {
-					var configPath = "config.xml";
+					// Move all meta-data tags from AndroidManifest.xml to config.xml
+					config = migrateMetaData(manifestResult.manifest, config);
 
-					if (!fs.existsSync(configPath)) {
-						return;
+					// Remove all meta-data and receiver tags from AndroidManifest.xml
+					manifestResult.manifest = removeMetaData(manifestResult.manifest);
+					manifestResult.manifest = removeReceivers(manifestResult.manifest);
+					var manifestXml = new xml2js.Builder().buildObject(manifestResult);
+					try {
+						fs.writeFileSync(manifestPath, manifestXml);
+					} catch(e) {
+						process.stdout.write(e);
 					}
 
-					fs.readFile(configPath, function(configReadError, config) {
-						if (configReadError) {
-							console.log("Error reading config.xml file: " + configReadError);
-						} else {
-							xml2js.parseString(config.toString(), function(configParseError, configResult) {
-								if (configParseError) {
-									console.log("Error parsing config.xml file: " + configParseError);
-								} else {
-									// Move all meta-data tags from AndroidManifest.xml to config.xml
-									configResult.widget = migrateMetaData(manifestResult.manifest, configResult.widget);
-									
-									var xml = new xml2js.Builder().buildObject(configResult);
-									try {
-										fs.writeFileSync("config.xml", xml);
-									} catch(e) {
-										process.stdout.write(e);
-									}
+					callback(config);
+				}
+			});
+		}
+	} catch(e) {
+		callback(config);
+	}
+}
 
-									// Remove all meta-data and receiver tags from AndroidManifest.xml
-									updateAndroidManifest();
-								}
-							});
+function migrateInfoPlist(infoPlist, config) {
+	try {
+		var infoPlistObj = plist.parse(infoPlist, 'utf8');
+
+		var licenseCode = infoPlistObj['WEGLicenseCode'];
+		var apnsAutoRegister = infoPlistObj['WEGApnsAutoRegister'];
+		var logLevel = infoPlistObj['WEGLogLevel'];
+
+		var platforms = config.platform;
+		var iosPlatforms = platforms.filter(
+			platform => (platform && platform['$'] && platform['$']['name'] === "ios")
+		);
+		if (iosPlatforms == null || iosPlatforms.length == 0) {
+			iosPlatforms[0] = {"platform": []};
+			iosPlatforms[0]['$'] = {"name": "ios"};
+			platforms.push(iosPlatforms[0]);
+		}
+		var iosPlatform = iosPlatforms[0];
+
+		var configFiles = iosPlatform['config-file'];
+		if (!configFiles || configFiles == null) {
+			configFiles = new Array();
+			iosPlatform['config-file'] = configFiles;
+		}
+
+		if (licenseCode) {
+			var licenseCodeConfigFiles = configFiles.filter(
+				configFile => (configFile && configFile['$'] && configFile['$']['target'] && configFile['$']['target'] == "*-Info.plist" && configFile['$']['parent'] && configFile['$']['parent'] == "WEGLicenseCode")
+			);
+			if (!licenseCodeConfigFiles || licenseCodeConfigFiles.length == 0) {
+				var licenseCodeConfigFile = {"string": licenseCode};
+				licenseCodeConfigFile['$'] = {"parent": "WEGLicenseCode", "target": "*-Info.plist"};
+				configFiles.push(licenseCodeConfigFile);
+			}
+		}
+
+		if (apnsAutoRegister != undefined) {
+			var apnsAutoRegisterConfigFiles = configFiles.filter(
+				configFile => (configFile && configFile['$'] && configFile['$']['target'] && configFile['$']['target'] == "*-Info.plist" && configFile['$']['parent'] && configFile['$']['parent'] == "WEGApnsAutoRegister")
+			);
+			if (!apnsAutoRegisterConfigFiles || apnsAutoRegisterConfigFiles.length == 0) {
+				var apnsAutoRegisterConfigFile = {};
+				if (apnsAutoRegister) {
+					apnsAutoRegisterConfigFile = {"true": {}};
+				} else {
+					apnsAutoRegisterConfigFile = {"false": {}};
+				}
+				apnsAutoRegisterConfigFile['$'] = {"parent": "WEGApnsAutoRegister", "target": "*-Info.plist"};
+				configFiles.push(apnsAutoRegisterConfigFile);
+			}
+		}
+
+		if (logLevel) {
+			var logLevelConfigFiles = configFiles.filter(
+				configFile => (configFile && configFile['$'] && configFile['$']['target'] && configFile['$']['target'] == "*-Info.plist" && configFile['$']['parent'] && configFile['$']['parent'] == "WEGLogLevel")
+			);
+			if (!logLevelConfigFiles || logLevelConfigFiles.length == 0) {
+				var logLevelConfigFile = {"string": logLevel};
+				logLevelConfigFile['$'] = {"parent": "WEGLogLevel", "target": "*-Info.plist"};
+				configFiles.push(logLevelConfigFile);
+			}
+		}
+	} catch(e) {
+		console.log("Error in migrating iOS info plist to config.xml");
+	}
+	return config;
+}
+
+function migrateIos(config) {
+	try {
+		var appName = config.name;
+		if (!appName) {
+			return config;
+		}
+
+		var iosDir = "platforms/ios/" + appName;
+		if (!fs.existsSync(iosDir)) {
+			return config;
+		}
+
+		var files = fs.readdirSync(iosDir);
+		files = files.filter(
+			file => (file && file.endsWith("-Info.plist"))
+		);
+		if (files && files != null) {
+			for (var i = 0; i < files.length; i++) {
+				var infoPlist = fs.readFileSync(iosDir + "/" + files[i], 'utf8');
+				config = migrateInfoPlist(infoPlist, config);
+			}
+		}
+	} catch(e) {
+		console.log("Error migrating iOS configurations");
+	}
+	return config;
+}
+
+async function clean() {
+	exec('cordova clean');
+}
+
+function migrate() {
+	var configPath = "config.xml";
+	if (!fs.existsSync(configPath)) {
+		return;
+	}
+
+	fs.readFile(configPath, function(configReadError, config) {
+		if (configReadError) {
+			console.log("Error reading config.xml file: " + configReadError);
+		} else {
+			xml2js.parseString(config.toString(), function(configParseError, configResult) {
+				if (configParseError) {
+					console.log("Error parsing config.xml file: " + configParseError);
+				} else {
+					configResult.widget = migrateIos(configResult.widget);
+
+					migrateAndroid(configResult.widget, function(widget) {
+						configResult.widget = widget;
+						var configXml = new xml2js.Builder().buildObject(configResult);
+						try {
+							fs.writeFileSync(configPath, configXml);
+						} catch(e) {
+							process.stdout.write(e);
 						}
 					});
+
+					clean();
 				}
 			});
 		}
 	});
 }
 
-updateConfig();
+migrate();

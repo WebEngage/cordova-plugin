@@ -99,8 +99,8 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
             WebEngage.registerInAppNotificationCallback(this);
             WebEngage.registerLifeCycleCallback(this);
             
-            if (args != null && args.length() > 0) {
-                // dynamic config
+            if (args != null && args.length() > 0 && args.get(0) instanceof JSONObject) {
+                // Dynamic config
                 JSONObject config = args.getJSONObject(0);
 
                 WebEngageConfig.Builder configBuilder = new WebEngageConfig.Builder();
@@ -111,28 +111,30 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                     configBuilder.setDebugMode(config.optBoolean("debug"));
                 }
 
-                JSONObject androidConfig = config.getJSONObject("android");
-                if (!androidConfig.isNull("autoPushRegister")) {
-                    configBuilder.setAutoGCMRegistrationFlag(androidConfig.optBoolean("autoPushRegister"));  
-                }
-                if (!androidConfig.isNull("pushProjectNumber")) {
-                    configBuilder.setGCMProjectNumber(androidConfig.optString("pushProjectNumber"));
-                }
-                if (!androidConfig.isNull("locationTrackingStrategy")) {
-                    if ("accuracy_best".equals(androidConfig.optString("locationTrackingStrategy"))) {
-                        configBuilder.setLocationTrackingStrategy(LocationTrackingStrategy.ACCURACY_BEST);
-                    } else if ("accuracy_city".equals(androidConfig.optString("locationTrackingStrategy"))) {
-                        configBuilder.setLocationTrackingStrategy(LocationTrackingStrategy.ACCURACY_CITY);
-                    } else if ("accuracy_country".equals(androidConfig.optString("locationTrackingStrategy"))) {
-                        configBuilder.setLocationTrackingStrategy(LocationTrackingStrategy.ACCURACY_COUNTRY);
-                    } else if ("disabled".equals(androidConfig.optString("locationTrackingStrategy"))) {
-                        configBuilder.setLocationTrackingStrategy(LocationTrackingStrategy.DISABLED);
+                if (!config.isNull("android")) {
+                    JSONObject androidConfig = config.getJSONObject("android");
+                    if (!androidConfig.isNull("autoPushRegister")) {
+                        configBuilder.setAutoGCMRegistrationFlag(androidConfig.optBoolean("autoPushRegister"));
+                    }
+                    if (!androidConfig.isNull("pushProjectNumber")) {
+                        configBuilder.setGCMProjectNumber(androidConfig.optString("pushProjectNumber"));
+                    }
+                    if (!androidConfig.isNull("locationTrackingStrategy")) {
+                        if ("accuracy_best".equals(androidConfig.optString("locationTrackingStrategy"))) {
+                            configBuilder.setLocationTrackingStrategy(LocationTrackingStrategy.ACCURACY_BEST);
+                        } else if ("accuracy_city".equals(androidConfig.optString("locationTrackingStrategy"))) {
+                            configBuilder.setLocationTrackingStrategy(LocationTrackingStrategy.ACCURACY_CITY);
+                        } else if ("accuracy_country".equals(androidConfig.optString("locationTrackingStrategy"))) {
+                            configBuilder.setLocationTrackingStrategy(LocationTrackingStrategy.ACCURACY_COUNTRY);
+                        } else if ("disabled".equals(androidConfig.optString("locationTrackingStrategy"))) {
+                            configBuilder.setLocationTrackingStrategy(LocationTrackingStrategy.DISABLED);
+                        }
                     }
                 }
 
                 WebEngage.engage(cordova.getActivity().getApplicationContext(), configBuilder.build());
             } else {
-                // static config read from we_config.xml
+                // Static config read from config.xml
                 WebEngage.engage(cordova.getActivity().getApplicationContext());
             }
 
