@@ -15,18 +15,28 @@ var androidMetaDataKeys = ["com.webengage.sdk.android.key",
 	"com.webengage.sdk.android.large_icon", 
 	"com.webengage.sdk.android.accent_color"];
 
-var androidReceivers = ["com.webengage.sdk.android.WebEngageReceiver"];
-
-function checkValidXml2jsNode(node) {
-	return node && node instanceof Array && node.length > 0 ;
-}
-
 function getAutoGcmRegistration(metaData) {
-	if (metaData == null || metaData.length == 0) {
+	if (metaData === undefined || metaData === null || metaData.length === 0) {
 		return false;
 	}
 	for (var i = 0; i < metaData.length; i++) {
-		if (metaData[i]['$'] && metaData[i]['$']['android:name'] == "com.webengage.sdk.android.auto_gcm_registration") {
+		if (metaData[i]['$'] && metaData[i]['$']['android:name'] === "com.webengage.sdk.android.auto_gcm_registration") {
+			if (metaData[i]['$']['android:value'] == "true") {
+				return true;
+			} else {
+				return false;
+			}
+		}
+	}
+	return false;
+}
+
+function getLocationTrackingFlag(metaData) {
+	if (metaData === undefined || metaData === null || metaData.length === 0) {
+		return false;
+	}
+	for (var i = 0; i < metaData.length; i++) {
+		if (metaData[i]['$'] && metaData[i]['$']['android:name'] === "com.webengage.sdk.android.location_tracking") {
 			if (metaData[i]['$']['android:value'] == "true") {
 				return true;
 			} else {
@@ -158,8 +168,9 @@ function migrateMetaData(manifest, config) {
 						}
 					}
 					for (var i = 0; i < permissions.length; i++) {
-						if (permissions[i] && permissions[i]['$'] && permissions[i]['$']['android:name'] == "${applicationId}.permission.C2D_MESSAGE" && permissions[i]['$']['android:protectionLevel'] && permissions[i]['$']['android:protectionLevel'] == "signature") {
+						if (permissions[i] && permissions[i]['$'] && permissions[i]['$']['android:name'] === "${applicationId}.permission.C2D_MESSAGE" && permissions[i]['$']['android:protectionLevel'] && permissions[i]['$']['android:protectionLevel'] === "signature") {
 							hasSignatureMessagePermission = true;
+							break;
 						}
 					}
 					if (!hasReceivePermission) {
@@ -193,30 +204,44 @@ function migrateMetaData(manifest, config) {
 						}
 					}
 				}
+
+				var locationTrackingFlag = getLocationTrackingFlag(configMetaData);
+				if (locationTrackingFlag) {
+					// Add location permission
+					var manifestConfigFile = platformConfigFiles.filter(
+						configFile => (configFile && configFile['$'] && configFile['$']['parent'] === "/manifest")
+					);
+					if (manifestConfigFile == null || manifestConfigFile.length == 0) {
+						manifestConfigFile = [];
+						manifestConfigFile[0] = {"uses-permission": [], "permission": []};
+						manifestConfigFile[0]['$'] = {"parent": "/manifest", "target": "AndroidManifest.xml"};
+						androidPlatform[0]['config-file'].push(manifestConfigFile[0]);
+					}
+					var usesPermissions = manifestConfigFile[0]['uses-permission'];
+					if (usesPermissions == null) {
+						usesPermissions = new Array();
+						manifestConfigFile[0]['uses-permission'] = usesPermissions;
+					}
+
+					var hasLocationPermission = false;
+					for (var i = 0; i < usesPermissions.length; i++) {
+						if (usesPermissions[i] && usesPermissions[i]['$'] && usesPermissions[i]['$']['android:name'] == "android.permission.ACCESS_FINE_LOCATION") {
+							hasLocationPermission = true;
+							break;
+						}
+					}
+					if (!hasLocationPermission) {
+						var locationPermission = {};
+						locationPermission['$'] = {"android:name": "android.permission.ACCESS_FINE_LOCATION"};
+						usesPermissions.push(locationPermission);
+					}
+				}
 			}
 		}
 	} catch(e) {
 		console.log("Error migrating Android meta-data to config.xml");
 	}
     return config;
-}
-
-function removeMetaData(manifest) {
-	if (checkValidXml2jsNode(manifest.application)) {
-		var manifestMetaData = manifest.application[0]['meta-data'];
-		manifestMetaData = (checkValidXml2jsNode(manifestMetaData)) ? manifestMetaData.filter(metaData => !(metaData && metaData['$'] && androidMetaDataKeys.indexOf(metaData['$']['android:name']) > -1)) : [];
-		manifest.application[0]['meta-data'] = manifestMetaData;
-	}
-	return manifest;
-}
-
-function removeReceivers(manifest) {
-	if (checkValidXml2jsNode(manifest.application)) {
-		var receivers = manifest.application[0].receiver;
-		receivers = checkValidXml2jsNode(receivers) ? receivers.filter(receiver => !(receiver && receiver['$'] && androidReceivers.indexOf(receiver['$']['android:name']) > -1)) : [];
-		manifest.application[0].receiver = receivers;
-	}
-	return manifest;
 }
 
 function migrateAndroid(config, callback) {
@@ -239,16 +264,6 @@ function migrateAndroid(config, callback) {
 				} else {
 					// Move all meta-data tags from AndroidManifest.xml to config.xml
 					config = migrateMetaData(manifestResult.manifest, config);
-
-					// Remove all meta-data and receiver tags from AndroidManifest.xml
-					manifestResult.manifest = removeMetaData(manifestResult.manifest);
-					manifestResult.manifest = removeReceivers(manifestResult.manifest);
-					var manifestXml = new xml2js.Builder().buildObject(manifestResult);
-					try {
-						fs.writeFileSync(manifestPath, manifestXml);
-					} catch(e) {
-						process.stdout.write(e);
-					}
 
 					callback(config);
 				}

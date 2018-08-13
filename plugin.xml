@@ -59,4 +59,5 @@
     </platform>
 
     <hook src="hooks/migrate.js" type="after_plugin_add" />
+    <hook src="hooks/clean.js" type="before_clean" />
 </plugin>

@@ -42,7 +42,6 @@ WebEngagePlugin.prototype.screen = function(screenName, screenData) {
 	}
 }
 
-
 function WebEngagePushChannel () {
 	//this.clickCallback = function(){};
 	this._options = {};
