@@ -120,8 +120,6 @@ Add the following tags in your `config.xml` file.
 </widget>
 ```
 
-**Note:** Supported values for 'WEGEnableLocationAuthorizationRequest': 'NO'(default), 'ALWAYS', 'IN_USE'.
-
 
 ## Tracking Users
 
