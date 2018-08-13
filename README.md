@@ -279,7 +279,29 @@ webengage.notification.onDismiss(function(inAppData) {
 
 ### 1. Manifest merger failed
 
-This is caused when there are duplicate meta-data tags in your AndroidManifest.xml file. To resolve this problem, simply run the command `cordova clean`.
+```
+Error: Element meta-data#com.webengage.sdk.android... at AndroidManifest.xml:... duplicated with element declared at AndroidManifest.xml:...
+...
+Error:
+	Validation failed, exiting
+```
+
+This error is caused when there are duplicate meta-data tags in your AndroidManifest.xml file. To resolve this problem, simply run the command `cordova clean`.
+
+### 2. AAPT: Error: unbound prefix
+
+```
+A problem occurred configuring project ':app'.
+> org.xml.sax.SAXParseException; systemId: file:/.../AndroidManifest.xml; lineNumber: ...; columnNumber: ...; The prefix "android" for attribute "..." associated with an element type "manifest" is not bound.
+```
+
+This error is caused when AAPT cannot identify the prefix 'android' from your AndroidManifest.xml. To resolve this error, just add the android namespace attribute to the widget tag in your `config.xml` file as shown below.
+
+```xml
+<widget ... xmlns:android="http://schemas.android.com/apk/res/android">
+    ...
+</widget>
+```
 
 
 ## Cordova Sample Project
