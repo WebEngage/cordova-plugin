@@ -172,6 +172,24 @@ webengage.track("Purchased", {"product-id": "123", "product-name": "wrist-watch"
 
 ### 1. Android Push Notification Integration
 
+#### FCM Integration
+
+1. Add this plugin to your Cordova project.
+
+```
+cordova plugin add https://github.com/WebEngage/cordova-plugin-android-fcm.git --fetch
+```
+
+2. Add google-services.json file.
+
+Follow the steps at [Android FCM Documentation](https://firebase.google.com/docs/android/setup) to get the google-services.json file from Firebase Cloud.
+
+Save google-services.json file in the root of your project directory.
+
+Done. Run and test push notifications from WebEngage dashboard on your Android app.
+
+#### GCM Integration (Deprecated)
+
 Add the following in your `config.xml` file, under android platform tag.
 
 ```xml
@@ -224,6 +242,51 @@ Add the following in your `config.xml` file, under android platform tag.
 ```
 
 **Note:** Replace the value of android.project_number with your GCM/FCM Project Number (Sender ID).
+
+#### GCM to FCM Migration
+
+1. Follow the [FCM Integration steps](https://github.com/WebEngage/cordova-plugin#fcm-integration).
+
+2. Remove the following from your `config.xml` file, under android platform tag.
+
+```xml
+<widget ... xmlns:android="http://schemas.android.com/apk/res/android">
+    ...
+    <platform name="android">
+        <config-file parent="/manifest/application" target="AndroidManifest.xml">
+            ...
+
+            <!-- Remove these meta-data and receiver tags -->
+            <!--
+            <meta-data 
+                android:name="com.webengage.sdk.android.project_number" android:value="$12345678910" />
+
+            <meta-data 
+                android:name="com.webengage.sdk.android.auto_gcm_registration" 
+                android:value="true" />
+
+            <receiver 
+                android:name="com.webengage.sdk.android.WebEngagePushReceiver" android:permission="com.google.android.c2dm.permission.SEND">
+                <intent-filter>
+                    <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+                    <category android:name="${applicationId}" />
+                </intent-filter>
+            </receiver>
+            -->
+        </config-file>
+        <config-file parent="/manifest" target="AndroidManifest.xml">
+            ...
+            <!-- Remove these permissions -->
+            <!--
+            <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
+            <uses-permission android:name="${applicationId}.permission.C2D_MESSAGE" />
+            <permission android:name="${applicationId}.permission.C2D_MESSAGE" android:protectionLevel="signature" />
+            -->
+        </config-file>
+    </platform>
+    ...
+</widget>
+```
 
 ### 2. iOS Push Notification Integration
 
