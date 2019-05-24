@@ -174,17 +174,32 @@ webengage.track("Purchased", {"product-id": "123", "product-name": "wrist-watch"
 
 #### FCM Integration
 
-1. Add this plugin to your Cordova project.
+**1. Add this plugin to your Cordova project.**
 
 ```
 cordova plugin add https://github.com/WebEngage/cordova-plugin-android-fcm.git --fetch
 ```
 
-2. Add google-services.json file.
+**2. Add google-services.json file.**
 
 Follow the steps at [Android FCM Documentation](https://firebase.google.com/docs/android/setup) to get the google-services.json file from Firebase Cloud.
 
 Save google-services.json file in the root of your project directory.
+
+**3. Update FCM token on app launch.**
+
+Send FCM token to WebEngage SDK in your `wwww/js/index.js` file.
+
+```javascript
+var app = {
+    ...
+    onDeviceReady: function() {
+        ...
+
+        androidfcm.updateToken();
+    }
+}
+```
 
 Done. Run and test push notifications from WebEngage dashboard on your Android app.
 
