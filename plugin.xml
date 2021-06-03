@@ -31,6 +31,15 @@
 		<source-file src="src/ios/WebEngagePlugin.m" />
 		<header-file src="src/ios/AppDelegate+WebEngagePlugin.h" />
 		<source-file src="src/ios/AppDelegate+WebEngagePlugin.m" />
+
+        <podspec>
+            <config>
+                <source url="https://github.com/CocoaPods/Specs.git"/>
+            </config>
+            <pods use-frameworks="true">
+                <pod name="WebEngage" spec="~> 5.2.6" />
+            </pods>
+        </podspec>
 	</platform>
     
     <platform name="android">
