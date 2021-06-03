@@ -418,12 +418,7 @@ static WebEngagePlugin *webEngagePlugin;
 + (NSString *)evaluateJavaScript:(NSString *)script onWebView:(UIView *)webView {
     __block NSString* resultData = [[NSString alloc] init];
     
-    if ([webView isKindOfClass:UIWebView.class]) {
-        UIWebView *webview = (UIWebView*)webView;
-        resultData=[webview stringByEvaluatingJavaScriptFromString:script];
-    }
-    
-    else if ([webView isKindOfClass:WKWebView.class]) {
+    if ([webView isKindOfClass:WKWebView.class]) {
         WKWebView *webview = (WKWebView*)webView;
         [webview evaluateJavaScript:script completionHandler:^(id _Nullable result, NSError * _Nullable error) {
             resultData=result;
@@ -435,12 +430,7 @@ static WebEngagePlugin *webEngagePlugin;
 + (void) evaluateJavaScript:(NSString *)script onWebView:(id)webView
           completionHandler:(void (^ _Nullable)(NSString * _Nullable response, NSError * _Nullable error))completionHandler {
     
-    if ([webView isKindOfClass:UIWebView.class]) {
-        UIWebView *webview = (UIWebView*)webView;
-        NSString *response = [webview stringByEvaluatingJavaScriptFromString:script];
-        if (completionHandler)
-            completionHandler(response, nil);
-    } else if ([webView isKindOfClass:WKWebView.class]) {
+    if ([webView isKindOfClass:WKWebView.class]) {
         WKWebView *webview = (WKWebView*)webView;
         [webview evaluateJavaScript:script completionHandler:^(id result, NSError *error) {
             if (completionHandler) {
