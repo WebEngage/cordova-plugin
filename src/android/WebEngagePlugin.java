@@ -21,6 +21,9 @@ import android.util.Log;
 
 import android.media.RingtoneManager;
 
+import androidx.core.content.ContextCompat;
+
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
@@ -48,6 +51,8 @@ import com.webengage.sdk.android.utils.DataType;
 import com.webengage.sdk.android.UserProfile;
 import com.webengage.sdk.android.UserProfile.Builder;
 import com.webengage.sdk.android.utils.Gender;
+
+import static java.security.AccessController.getContext;
 
 public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCallbacks, InAppNotificationCallbacks, LifeCycleCallbacks {
     private static final String TAG = "WebEngagePlugin";
@@ -89,16 +94,16 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         this.webView = webView;
         Log.d(TAG, "Intialized");
     }
-    
+
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
         Logger.v(TAG,"Execute: " + action);
-        
+
         if ("engage".equals(action)) {
             WebEngage.registerPushNotificationCallback(this);
             WebEngage.registerInAppNotificationCallback(this);
             WebEngage.registerLifeCycleCallback(this);
-            
+
             if (args != null && args.length() > 0 && args.get(0) instanceof JSONObject) {
                 // Dynamic config
                 JSONObject config = args.getJSONObject(0);
@@ -109,6 +114,22 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                 }
                 if (!config.isNull("debug")) {
                     configBuilder.setDebugMode(config.optBoolean("debug"));
+                }
+
+                if (!config.isNull("smallIcon")) {
+                  String iconRes = config.optString("smallIcon");
+                  if (!iconRes.isEmpty()) {
+                    try {
+                      String[] iconResSplit = iconRes.split("\\.");
+                      String res = iconResSplit[1];
+                      String iconName = iconResSplit[2];
+                      int resId = cordova.getActivity().getApplicationContext().getResources().getIdentifier(iconName,
+                       res, cordova.getActivity().getApplicationContext().getPackageName());
+                      configBuilder.setPushSmallIcon(resId);
+                    } catch (Exception e) {
+                      Logger.d("WebEngagePlugin", "Provide proper format for smallIcon: R.<res-dir>.<icon-name>");
+                    }
+                  }
                 }
 
                 if (!config.isNull("android")) {
@@ -233,7 +254,7 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                     if (screenData != null) {
                         WebEngage.get().analytics().setScreenData(screenData);
                     }
-                }  
+                }
             }
         } else if ("login".equals(action)) {
             if (args.length() == 1 && args.get(0) instanceof String) {
@@ -280,7 +301,7 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                 customAttr.put(key, value);
             } catch (JSONException e) {
 
-            } 
+            }
         }
     }
 
@@ -290,7 +311,7 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         WebEngage.get().analytics().start(cordova.getActivity());
         super.onStart();
     }
-    
+
     @Override
     public void onStop() {
         Logger.d(TAG,"Activity Stop");
@@ -321,6 +342,9 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
 
     @Override
     public void onPushNotificationShown(Context context, PushNotificationData notificationData) {
+      String uri = notificationData.getPrimeCallToAction().getAction();
+      JSONObject customData = bundleToJson(notificationData.getCustomData());
+      webView.sendJavascript("javascript:webengage.push.onCallbackReceived( 'shown', '" + uri + "'," + customData + ");");
     }
 
     @Override
@@ -435,7 +459,7 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         return map;
     }
 
-    private List<Object> toList(JSONArray jsonArray) throws JSONException {  
+    private List<Object> toList(JSONArray jsonArray) throws JSONException {
         List<Object> list = new ArrayList<Object>();
         for(int i =0 ; i < jsonArray.length(); i++) {
             Object value = fromJSON(jsonArray.get(i));
@@ -443,4 +467,5 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         }
         return list;
     }
+
 }
