@@ -56,17 +56,13 @@ WebEngagePushChannel.prototype.onClick = function (callback) {
 	this.clickCallback = callback;
 }
 
-WebEngagePushChannel.prototype.onShown = function (callback) {
-	this.shownCallback = callback;
-}
 
 WebEngagePushChannel.prototype.onCallbackReceived = function(type, uri, customData) {
 	if (type) {
 		switch(type) {
-			case 'shown' :
-				this.shownCallback(customData);
+			case 'shown':
 				break;
-			case 'click' :
+			case 'click':
 				this.clickCallback(uri, customData);
 				break;
 			case 'dismiss' :
