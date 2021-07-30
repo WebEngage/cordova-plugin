@@ -56,12 +56,13 @@ WebEngagePushChannel.prototype.onClick = function (callback) {
 	this.clickCallback = callback;
 }
 
+
 WebEngagePushChannel.prototype.onCallbackReceived = function(type, uri, customData) {
 	if (type) {
 		switch(type) {
-			case 'shown' :
+			case 'shown':
 				break;
-			case 'click' :
+			case 'click':
 				this.clickCallback(uri, customData);
 				break;
 			case 'dismiss' :
@@ -130,7 +131,7 @@ WebEngageUserChannel.prototype.setAttribute = function(key, value) {
 };
 
 function isValidJavascriptObject(val) {
-	return val !== undefined && val != null && typeof val === 'object' 
+	return val !== undefined && val != null && typeof val === 'object'
 		&& Object.prototype.toString.call(val) === '[object Object]';
 }
 

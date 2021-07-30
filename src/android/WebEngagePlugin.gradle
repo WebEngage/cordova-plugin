@@ -12,7 +12,7 @@ allprojects {
     }
 }
 dependencies {
- 	compile 'com.webengage:android-sdk:3.+'
-	compile 'com.google.android.gms:play-services-gcm:+'
-	compile 'com.google.android.gms:play-services-location:+'
+ 	implementation 'com.webengage:android-sdk:3.+'
+	implementation 'com.google.android.gms:play-services-gcm:+'
+	implementation 'com.google.android.gms:play-services-location:+'
 }
