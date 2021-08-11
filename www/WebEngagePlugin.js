@@ -75,6 +75,7 @@ function WebEngageNotificationChannel () {
 	this.shownCallback = function(){};
 	this.clickCallback = function(){};
 	this.dismissCallback = function(){};
+	this.preparedCallback = function(){};
 	this._options = {};
 }
 
@@ -94,6 +95,9 @@ WebEngageNotificationChannel.prototype.onClick = function (callback) {
 WebEngageNotificationChannel.prototype.onDismiss = function(callback) {
 	this.dismissCallback = callback;
 };
+WebEngageNotificationChannel.prototype.onPrepared = function(callback) {
+	this.preparedCallback = callback;
+};
 
 WebEngageNotificationChannel.prototype.onCallbackReceived = function(type, notificationData, actionId) {
 	if (type) {
@@ -106,6 +110,8 @@ WebEngageNotificationChannel.prototype.onCallbackReceived = function(type, notif
 				break;
 			case 'dismiss' :
 				this.dismissCallback(notificationData);
+			case 'prepared':
+				this.preparedCallback(notificationData);
 				break;
 		}
 	}

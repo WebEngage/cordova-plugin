@@ -389,6 +389,7 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         if (inappOptions.get(INAPP_SHOULD_RENDER) != null) {
             notificationData.setShouldRender((Boolean) inappOptions.get(INAPP_SHOULD_RENDER));
         }
+        webView.sendJavascript("javascript:webengage.notification.onCallbackReceived( 'prepared', " + notificationData.getData() + ");");
         return notificationData;
     }
 
