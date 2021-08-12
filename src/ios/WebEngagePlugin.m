@@ -52,7 +52,7 @@ static WebEngagePlugin *webEngagePlugin;
 
 - (void)handlePushNotificationPendingDeepLinks {
     
-    AppDelegate* appDelegate = [UIApplication sharedApplication].delegate;
+    AppDelegate* appDelegate = [AppDelegate sharedInstance];
     
     @synchronized (appDelegate) {
         
