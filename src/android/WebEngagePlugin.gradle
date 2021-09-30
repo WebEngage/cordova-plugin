@@ -12,7 +12,6 @@ allprojects {
     }
 }
 dependencies {
- 	implementation 'com.webengage:android-sdk:3.+'
-	implementation 'com.google.android.gms:play-services-gcm:+'
-	implementation 'com.google.android.gms:play-services-location:+'
+ 	implementation 'com.webengage:android-sdk:3.18+'
+	implementation 'com.google.android.gms:play-services-location:10+'
 }
