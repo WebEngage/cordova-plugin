@@ -345,9 +345,9 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
 
     @Override
     public void onPushNotificationShown(Context context, PushNotificationData notificationData) {
-        String uri = notificationData.getPrimeCallToAction().getAction();
-        JSONObject customData = bundleToJson(notificationData.getCustomData());
-        webView.sendJavascript("javascript:webengage.push.onCallbackReceived( 'shown', '" + uri + "'," + customData + ");");
+//         String uri = notificationData.getPrimeCallToAction().getAction();
+//         JSONObject customData = bundleToJson(notificationData.getCustomData());
+//         webView.sendJavascript("javascript:webengage.push.onCallbackReceived( 'shown', '" + uri + "'," + customData + ");");
     }
 
     @Override
