@@ -4,35 +4,25 @@ import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaWebView;
 import org.apache.cordova.CallbackContext;
-import org.apache.cordova.PluginResult;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.app.Application;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
 import android.content.Context;
-import android.location.Location;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 
 import android.media.RingtoneManager;
 
-import androidx.core.content.ContextCompat;
-
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
+
 import java.util.TimeZone;
-import java.util.GregorianCalendar;
-import java.util.Calendar;
+
 import java.util.Iterator;
 import java.util.Locale;
 
@@ -47,12 +37,9 @@ import com.webengage.sdk.android.actions.render.PushNotificationData;
 import com.webengage.sdk.android.actions.render.InAppNotificationData;
 import com.webengage.sdk.android.callbacks.InAppNotificationCallbacks;
 import com.webengage.sdk.android.callbacks.LifeCycleCallbacks;
-import com.webengage.sdk.android.utils.DataType;
 import com.webengage.sdk.android.UserProfile;
-import com.webengage.sdk.android.UserProfile.Builder;
 import com.webengage.sdk.android.utils.Gender;
 
-import static java.security.AccessController.getContext;
 
 public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCallbacks, InAppNotificationCallbacks, LifeCycleCallbacks {
     private static final String TAG = "WebEngagePlugin";
