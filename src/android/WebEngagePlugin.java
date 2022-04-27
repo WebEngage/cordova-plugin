@@ -412,6 +412,11 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     }
 
     @Override
+    public void onNewSessionStarted(){
+        Logger.d(TAG, "new session started");
+    }
+
+    @Override
     public void onAppUpgraded(Context context, int oldVersion, int newVersion) {
     }
 
