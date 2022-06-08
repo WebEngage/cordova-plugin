@@ -354,6 +354,12 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     public boolean onPushNotificationClicked(Context context, PushNotificationData notificationData) {
         String uri = notificationData.getPrimeCallToAction().getAction();
         JSONObject customData = bundleToJson(notificationData.getCustomData());
+        try {
+            customData = mergeJson(bundleToJson(notificationData.getCustomData()),notificationData.getPushPayloadJSON());
+        } catch (JSONException e) {
+            e.printStackTrace();
+            Logger.e(TAG,"Exception while merging JSON");
+        }
         webView.sendJavascript("javascript:webengage.push.onCallbackReceived( 'click', '" + uri + "'," + customData + ");");
         return false;
     }
@@ -362,6 +368,12 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     public boolean onPushNotificationActionClicked(Context context, PushNotificationData notificationData, String buttonID) {
         String uri = notificationData.getCallToActionById(buttonID).getAction();
         JSONObject customData = bundleToJson(notificationData.getCustomData());
+        try {
+            customData = mergeJson(bundleToJson(notificationData.getCustomData()),notificationData.getPushPayloadJSON());
+        } catch (JSONException e) {
+            e.printStackTrace();
+            Logger.e(TAG,"Exception while merging JSON");
+        }
         webView.sendJavascript("javascript:webengage.push.onCallbackReceived( 'click', '" + uri + "'," + customData + ");");
         return false;
     }
@@ -412,12 +424,12 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     }
 
     @Override
-    public void onNewSessionStarted(){
-        Logger.d(TAG, "new session started");
+    public void onAppUpgraded(Context context, int oldVersion, int newVersion) {
     }
 
     @Override
-    public void onAppUpgraded(Context context, int oldVersion, int newVersion) {
+    public void onNewSessionStarted(){
+        Logger.d(TAG, "new session started");
     }
 
     private static JSONObject bundleToJson(Bundle bundle) {
@@ -466,6 +478,14 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
             map.put(key, value);
         }
         return map;
+    }
+
+    private JSONObject mergeJson(JSONObject jsonObject1, JSONObject jsonObject2) throws JSONException{
+        for (Iterator<String> it = jsonObject2.keys(); it.hasNext(); ) {
+            String key = it.next();
+            jsonObject1.put(key,jsonObject2.get(key));
+        }
+        return jsonObject1;
     }
 
     private List<Object> toList(JSONArray jsonArray) throws JSONException {
