@@ -355,7 +355,7 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         String uri = notificationData.getPrimeCallToAction().getAction();
         JSONObject customData = bundleToJson(notificationData.getCustomData());
         try {
-            customData = mergeJson(bundleToJson(notificationData.getCustomData()),notificationData.getPushPayloadJSON());
+            customData = mergeJson(customData ,notificationData.getPushPayloadJSON());
         } catch (JSONException e) {
             e.printStackTrace();
             Logger.e(TAG,"Exception while merging JSON");
@@ -369,7 +369,7 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         String uri = notificationData.getCallToActionById(buttonID).getAction();
         JSONObject customData = bundleToJson(notificationData.getCustomData());
         try {
-            customData = mergeJson(bundleToJson(notificationData.getCustomData()),notificationData.getPushPayloadJSON());
+            customData = mergeJson(customData ,notificationData.getPushPayloadJSON());
         } catch (JSONException e) {
             e.printStackTrace();
             Logger.e(TAG,"Exception while merging JSON");
