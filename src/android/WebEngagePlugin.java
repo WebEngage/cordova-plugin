@@ -334,13 +334,24 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         return notificationData;
     }
 
-    public static void handlePushClick(String uri, JSONObject data) {
+    public static void handlePushClick(String uri, Bundle customData, JSONObject payload) {
         IS_PUSH_CALLBACK_PENDING = true;
         PENDING_PUSH_URI = uri;
+        JSONObject data = bundleToJson(customData);
+        try {
+            data = mergeJson(bundleToJson(customData),payload);
+        } catch (JSONException e) {
+            Logger.e(TAG, "error merging json");
+        }
         PENDING_PUSH_CUSTOM_DATA = data;
         Logger.d(TAG, "handlePushClick invoked");
     }
-
+    public static void handlePushClick(String uri, Bundle data) {
+        IS_PUSH_CALLBACK_PENDING = true;
+        PENDING_PUSH_URI = uri;
+        PENDING_PUSH_CUSTOM_DATA = bundleToJson(data);
+        Logger.d(TAG, "handlePushClick invoked");
+    }
     @Override
     public void onPushNotificationShown(Context context, PushNotificationData notificationData) {
 //         String uri = notificationData.getPrimeCallToAction().getAction();
@@ -455,7 +466,7 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         return map;
     }
 
-    private JSONObject mergeJson(JSONObject jsonObject1, JSONObject jsonObject2) throws JSONException {
+    private static JSONObject mergeJson(JSONObject jsonObject1, JSONObject jsonObject2) throws JSONException {
         for (Iterator<String> it = jsonObject2.keys(); it.hasNext(); ) {
             String key = it.next();
             jsonObject1.put(key, jsonObject2.get(key));
