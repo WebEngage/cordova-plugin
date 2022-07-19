@@ -334,24 +334,24 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         return notificationData;
     }
 
-    public static void handlePushClick(String uri, Bundle customData, JSONObject payload) {
+    public static void handlePushClick(String uri, Bundle customData) {
         IS_PUSH_CALLBACK_PENDING = true;
         PENDING_PUSH_URI = uri;
         JSONObject data = bundleToJson(customData);
+        JSONObject pushPayload = null;
         try {
-            data = mergeJson(bundleToJson(customData),payload);
+            if (customData != null && customData.containsKey("we_pushPayload")) {
+                pushPayload = new JSONObject(customData.getString("we_pushPayload"));
+                data.remove("we_pushPayload");
+                mergeJson(data, pushPayload);
+            }
         } catch (JSONException e) {
             Logger.e(TAG, "error merging json");
         }
         PENDING_PUSH_CUSTOM_DATA = data;
         Logger.d(TAG, "handlePushClick invoked");
     }
-    public static void handlePushClick(String uri, Bundle data) {
-        IS_PUSH_CALLBACK_PENDING = true;
-        PENDING_PUSH_URI = uri;
-        PENDING_PUSH_CUSTOM_DATA = bundleToJson(data);
-        Logger.d(TAG, "handlePushClick invoked");
-    }
+
     @Override
     public void onPushNotificationShown(Context context, PushNotificationData notificationData) {
 //         String uri = notificationData.getPrimeCallToAction().getAction();
