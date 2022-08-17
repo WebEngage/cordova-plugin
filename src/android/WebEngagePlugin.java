@@ -36,12 +36,11 @@ import com.webengage.sdk.android.callbacks.PushNotificationCallbacks;
 import com.webengage.sdk.android.actions.render.PushNotificationData;
 import com.webengage.sdk.android.actions.render.InAppNotificationData;
 import com.webengage.sdk.android.callbacks.InAppNotificationCallbacks;
-import com.webengage.sdk.android.callbacks.LifeCycleCallbacks;
 import com.webengage.sdk.android.UserProfile;
 import com.webengage.sdk.android.utils.Gender;
 
 
-public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCallbacks, InAppNotificationCallbacks, LifeCycleCallbacks {
+public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCallbacks, InAppNotificationCallbacks {
     private static final String TAG = "WebEngagePlugin";
     private static CordovaWebView webView;
 
@@ -89,7 +88,6 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         if ("engage".equals(action)) {
             WebEngage.registerPushNotificationCallback(this);
             WebEngage.registerInAppNotificationCallback(this);
-            WebEngage.registerLifeCycleCallback(this);
 
             if (args != null && args.length() > 0 && args.get(0) instanceof JSONObject) {
                 // Dynamic config
@@ -340,10 +338,21 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         return notificationData;
     }
 
-    public static void handlePushClick(String uri, Bundle data) {
+    public static void handlePushClick(String uri, Bundle customData) {
         IS_PUSH_CALLBACK_PENDING = true;
         PENDING_PUSH_URI = uri;
-        PENDING_PUSH_CUSTOM_DATA = bundleToJson(data);
+        JSONObject data = bundleToJson(customData);
+        JSONObject pushPayload = null;
+        try {
+            if (customData != null && customData.containsKey("we_pushPayload")) {
+                pushPayload = new JSONObject(customData.getString("we_pushPayload"));
+                data.remove("we_pushPayload");
+                mergeJson(data, pushPayload);
+            }
+        } catch (JSONException e) {
+            Logger.e(TAG, "error merging json");
+        }
+        PENDING_PUSH_CUSTOM_DATA = data;
         Logger.d(TAG, "handlePushClick invoked");
     }
 
@@ -358,6 +367,12 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     public boolean onPushNotificationClicked(Context context, PushNotificationData notificationData) {
         String uri = notificationData.getPrimeCallToAction().getAction();
         JSONObject customData = bundleToJson(notificationData.getCustomData());
+        try {
+            customData = mergeJson(bundleToJson(notificationData.getCustomData()), notificationData.getPushPayloadJSON());
+        } catch (JSONException e) {
+            e.printStackTrace();
+            Logger.e(TAG, "Exception while merging JSON");
+        }
         webView.sendJavascript("javascript:webengage.push.onCallbackReceived( 'click', '" + uri + "'," + customData + ");");
         return false;
     }
@@ -366,6 +381,12 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     public boolean onPushNotificationActionClicked(Context context, PushNotificationData notificationData, String buttonID) {
         String uri = notificationData.getCallToActionById(buttonID).getAction();
         JSONObject customData = bundleToJson(notificationData.getCustomData());
+        try {
+            customData = mergeJson(bundleToJson(notificationData.getCustomData()), notificationData.getPushPayloadJSON());
+        } catch (JSONException e) {
+            e.printStackTrace();
+            Logger.e(TAG, "Exception while merging JSON");
+        }
         webView.sendJavascript("javascript:webengage.push.onCallbackReceived( 'click', '" + uri + "'," + customData + ");");
         return false;
     }
@@ -398,25 +419,6 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     public boolean onInAppNotificationClicked(Context context, InAppNotificationData notificationData, String actionId) {
         webView.sendJavascript("javascript:webengage.notification.onCallbackReceived( 'click', " + notificationData.getData() + ",'" + actionId + "');");
         return false;
-    }
-
-    @Override
-    public void onGCMRegistered(Context context, String regID) {
-        Logger.d(TAG, regID);
-    }
-
-    @Override
-    public void onGCMMessageReceived(Context context, Intent intent) {
-        Logger.d(TAG, intent.getExtras().toString());
-    }
-
-    @Override
-    public void onAppInstalled(Context context, Intent intent) {
-        Logger.d(TAG + "Install Referrer", intent.getExtras().getString("referrer"));
-    }
-
-    @Override
-    public void onAppUpgraded(Context context, int oldVersion, int newVersion) {
     }
 
     private static JSONObject bundleToJson(Bundle bundle) {
@@ -476,4 +478,11 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         return list;
     }
 
+    private static JSONObject mergeJson(JSONObject jsonObject1, JSONObject jsonObject2) throws JSONException {
+        for (Iterator<String> it = jsonObject2.keys(); it.hasNext(); ) {
+            String key = it.next();
+            jsonObject1.put(key, jsonObject2.get(key));
+        }
+        return jsonObject1;
+    }
 }
