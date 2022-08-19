@@ -12,5 +12,5 @@ allprojects {
     }
 }
 dependencies {
-    api 'com.webengage:android-sdk:[3.20,)'
+    api 'com.webengage:android-sdk:[3,)'
 }
