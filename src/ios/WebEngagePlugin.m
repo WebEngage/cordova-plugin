@@ -71,7 +71,7 @@ static WebEngagePlugin *webEngagePlugin;
                         NSData* data = [NSJSONSerialization dataWithJSONObject:pushData options:0 error:nil];
                         NSString* pushDataJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
                         
-                        NSString* string = [NSString stringWithFormat:@"webengage.push.onCallbackReceived( 'click', %@, '%@')", pushData? pushDataJSON: @"null", deeplink];
+                        NSString* string = [NSString stringWithFormat:@"webengage.push.onCallbackReceived('click', '%@', %@)", deeplink, pushData? pushDataJSON: @"null"];
                         
                         [self.commandDelegate evalJs:string];
                         

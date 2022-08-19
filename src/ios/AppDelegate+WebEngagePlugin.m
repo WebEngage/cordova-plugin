@@ -82,8 +82,8 @@
                             NSString* pushDataJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
 
                             [webEngagePlugin.commandDelegate evalJs:
-                             [NSString stringWithFormat:@"webengage.push.onCallbackReceived( 'click', %@, '%@')",
-                              pushDataJSON, deeplink]];
+                             [NSString stringWithFormat:@"webengage.push.onCallbackReceived('click', '%@', %@)",
+                               deeplink, pushDataJSON]];
                         } else {
                             NSURL* url = [NSURL URLWithString:deeplink];
                             if (url) {
