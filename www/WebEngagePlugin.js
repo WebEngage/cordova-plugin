@@ -4,6 +4,7 @@ function WebEngagePlugin() {
 	this.push = new WebEngagePushChannel();
 	this.notification = new WebEngageNotificationChannel();
 	this.user = new WebEngageUserChannel();
+	this.jwtManager = new WebEngageJWTManager();
 	this._options = {};
 }
 
@@ -71,6 +72,15 @@ WebEngagePushChannel.prototype.onCallbackReceived = function(type, uri, customDa
 	}
 };
 
+function WebEngageJWTManager () {
+	this.tokenInvalidatedCallback = function(){};
+	this._options = {};
+}
+
+WebEngageJWTManager.prototype.tokenInvalidatedCallback = function(callback) {
+	this.tokenInvalidatedCallback = callback;
+};
+
 function WebEngageNotificationChannel () {
 	this.shownCallback = function(){};
 	this.clickCallback = function(){};
@@ -120,8 +130,8 @@ WebEngageNotificationChannel.prototype.onCallbackReceived = function(type, notif
 function WebEngageUserChannel() {
 }
 
-WebEngageUserChannel.prototype.login = function(userId) {
-	exec(null, null, "WebEngagePlugin", "login", [userId]);
+WebEngageUserChannel.prototype.login = function(userId, jwtToken) {
+	exec(null, null, "WebEngagePlugin", "login", [userId, jwtToken]);
 };
 
 WebEngageUserChannel.prototype.logout = function() {
