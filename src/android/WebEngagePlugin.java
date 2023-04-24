@@ -267,6 +267,27 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
             if (args.length() == 1 && args.get(0) instanceof Boolean) {
                 WebEngage.get().user().setDevicePushOptIn(args.getBoolean(0));
             }
+        } else if ("setUserOptIn".equals(action)) {
+            if (args.length() == 2 && args.get(0) instanceof String && args.get(1) instanceof Boolean) {
+                String channel = args.getString(0);
+                boolean status = args.getBoolean(1);
+                if (PUSH.equalsIgnoreCase(channel)) {
+                    WebEngage.get().user().setOptIn(Channel.PUSH, status);
+                } else if (SMS.equalsIgnoreCase(channel)) {
+                    WebEngage.get().user().setOptIn(Channel.SMS, status);
+                } else if (EMAIL.equalsIgnoreCase(channel)) {
+                    WebEngage.get().user().setOptIn(Channel.EMAIL, status);
+                } else if (IN_APP.equalsIgnoreCase(channel)) {
+                    WebEngage.get().user().setOptIn(Channel.IN_APP, status);
+                } else if (WHATSAPP.equalsIgnoreCase(channel)) {
+                    WebEngage.get().user().setOptIn(Channel.WHATSAPP, status);
+                } else if (VIBER.equalsIgnoreCase(channel)) {
+                    WebEngage.get().user().setOptIn(Channel.VIBER, status);
+                }
+                else {
+                    Logger.e("WebEngagePlugin", "Invalid channel: " + channel + ". Must be one of [push, sms, email, in_app, whatsapp, viber].");
+                }            
+            }
         }
 
         return true;

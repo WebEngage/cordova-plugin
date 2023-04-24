@@ -136,9 +136,12 @@ WebEngageUserChannel.prototype.setAttribute = function(key, value) {
 	}
 };
 
-
 WebEngageUserChannel.prototype.setDevicePushOptIn = function(optIn) {
 	exec(null, null, "WebEngagePlugin", "setDevicePushOptIn", [optIn]);
+};
+
+WebEngageUserChannel.prototype.setUserOptIn = function(channel, optIn) {
+	exec(null, null, "WebEngagePlugin", "setUserOptIn", [channel, optIn]);
 };
 
 function isValidJavascriptObject(val) {
