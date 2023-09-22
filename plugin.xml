@@ -30,7 +30,7 @@
                 <source url="https://github.com/CocoaPods/Specs.git"/>
             </config>
             <pods use-frameworks="true">
-                <pod name="WebEngage" spec="~> 5.2.6" />
+                <pod name="WebEngage" />
             </pods>
         </podspec>
 	</platform>
@@ -45,6 +45,14 @@
             <uses-permission android:name="android.permission.INTERNET"/>
             <uses-permission android:name="android.permission.WAKE_LOCK" />
         </config-file>
+
+
+        <!-- <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            <meta-data
+            android:name="com.webengage.child.io"
+            android:value="io:${io_version}" />
+        </config-file> -->
+
         
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
             <receiver
@@ -54,8 +62,13 @@
                     <action android:name="com.android.vending.INSTALL_REFERRER" />
                 </intent-filter>
             </receiver>
+            <meta-data
+            android:name="com.webengage.child.io"
+            android:value="io:${io_version}" />
         </config-file>
 
+        <resource-file src="src/android/version.properties" target="version.properties" />
+        <resource-file src="src/android/libs/android-sdk-debug.aar" target="libs/android-sdk-debug.aar" />
         <source-file src="src/android/WebEngagePlugin.java" target-dir="src/com/webengage/cordova/"/>
         <framework src="src/android/WebEngagePlugin.gradle" custom="true" type="gradleReference"/>
     </platform>
