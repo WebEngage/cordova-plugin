@@ -14,6 +14,7 @@
 #define WE_COMPANY @"we_company"
 #define WE_HASHED_EMAIL @"we_hashed_email"
 #define WE_HASHED_PHONE @"we_hashed_phone"
+#define WEGPluginVersion @"1.0.0"
 
 @interface WebEngagePlugin()
 
@@ -34,7 +35,9 @@ static WebEngagePlugin *webEngagePlugin;
     [super pluginInitialize];
     webEngagePlugin = self;
     self.pendingDeepLinkCallback = nil;
-    
+
+    [webEngagePlugin initialiseWEGVersions];
+
     NSDateFormatter* dateFormatter = [[NSDateFormatter alloc] init];
     [dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"];
     [dateFormatter setTimeZone:[NSTimeZone timeZoneWithAbbreviation:@"UTC"]];
@@ -48,6 +51,11 @@ static WebEngagePlugin *webEngagePlugin;
     [birthDateFormatter setLocale:[[NSLocale alloc] initWithLocaleIdentifier:@"gb"]];
     
     self.birthDateFormatter = birthDateFormatter;
+}
+
+- (void) initialiseWEGVersions {
+    WegVersionKey key = WegVersionKeyIO;
+    [[WebEngage sharedInstance] setVersionForChildSDK:WEGPluginVersion forKey:key];;
 }
 
 - (void)handlePushNotificationPendingDeepLinks {
