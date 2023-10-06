@@ -14,7 +14,7 @@
 #define WE_COMPANY @"we_company"
 #define WE_HASHED_EMAIL @"we_hashed_email"
 #define WE_HASHED_PHONE @"we_hashed_phone"
-#define WEGPluginVersion @"1.0.0"
+#define WEGPluginVersion @"1.1.0"
 
 @interface WebEngagePlugin()
 
