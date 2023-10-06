@@ -55,7 +55,7 @@ static WebEngagePlugin *webEngagePlugin;
 
 - (void) initialiseWEGVersions {
     WegVersionKey key = WegVersionKeyIO;
-    [[WebEngage sharedInstance] setVersionForChildSDK:WEGPluginVersion forKey:key];;
+    [[WebEngage sharedInstance] setVersionForChildSDK:WEGPluginVersion forKey:key];
 }
 
 - (void)handlePushNotificationPendingDeepLinks {
