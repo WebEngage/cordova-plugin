@@ -46,7 +46,11 @@ static WebEngagePlugin *webEngagePlugin;
     [birthDateFormatter setDateFormat:@"yyyy-MM-dd"];
     [birthDateFormatter setTimeZone:[NSTimeZone timeZoneWithAbbreviation:@"UTC"]];
     [birthDateFormatter setLocale:[[NSLocale alloc] initWithLocaleIdentifier:@"gb"]];
-    
+    WEGJWTManager.shared.tokenInvalidatedCallback = ^(void){
+        [self.commandDelegate evalJs:
+        [NSString stringWithFormat: @"webengage.jwtManager.tokenInvalidatedCallback('expired')"]];
+    };
+
     self.birthDateFormatter = birthDateFormatter;
 }
 
@@ -254,9 +258,14 @@ static WebEngagePlugin *webEngagePlugin;
 - (void)login:(CDVInvokedUrlCommand *)command {
     CDVPluginResult* pluginResult = nil;
     NSString* userId = command.arguments && command.arguments.count>0 ? [command.arguments objectAtIndex:0] : nil;
+    NSString* jwtToken = command.arguments && command.arguments.count>0 ? [command.arguments objectAtIndex:1] : nil;
     
-    if (userId != nil && userId.length > 0) {
-        [[WebEngage sharedInstance].user loggedIn: userId];
+    if ((userId != nil && userId.length > 0) && (jwtToken != nil && jwtToken.length > 0)) {
+        [[WebEngage sharedInstance].user login:userId jwtToken:jwtToken];
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    } else if (userId != nil && userId.length > 0) {
+        [[WebEngage sharedInstance].user login: userId];
+
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     } else {
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];

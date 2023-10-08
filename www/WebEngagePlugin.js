@@ -5,6 +5,8 @@ function WebEngagePlugin() {
 	this.notification = new WebEngageNotificationChannel();
 	this.user = new WebEngageUserChannel();
 	this._options = {};
+	this.jwtManager = new WebEngageJWTManager();
+
 }
 
 WebEngagePlugin.prototype.engage = function(config) {
@@ -120,9 +122,9 @@ WebEngageNotificationChannel.prototype.onCallbackReceived = function(type, notif
 function WebEngageUserChannel() {
 }
 
-WebEngageUserChannel.prototype.login = function(userId) {
-	exec(null, null, "WebEngagePlugin", "login", [userId]);
-};
+WebEngageUserChannel.prototype.login = function(userId, jwtToken) {
+	exec(null, null, "WebEngagePlugin", "login", [userId, jwtToken]);
+}
 
 WebEngageUserChannel.prototype.logout = function() {
 	exec(null, null, "WebEngagePlugin", "logout",[]);
@@ -140,6 +142,15 @@ WebEngageUserChannel.prototype.setAttribute = function(key, value) {
 WebEngageUserChannel.prototype.setDevicePushOptIn = function(optIn) {
 	exec(null, null, "WebEngagePlugin", "setDevicePushOptIn", [optIn]);
 };
+
+WebEngageJWTManager.prototype.tokenInvalidatedCallback = function(callback) {
+	this.tokenInvalidatedCallback = callback;
+};
+
+function WebEngageJWTManager () {
+	this.tokenInvalidatedCallback = function(){};
+	this._options = {};
+}
 
 function isValidJavascriptObject(val) {
 	return val !== undefined && val != null && typeof val === 'object'
