@@ -274,6 +274,21 @@ static WebEngagePlugin *webEngagePlugin;
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
+- (void)setSecureToken:(CDVInvokedUrlCommand *)command{
+     CDVPluginResult* pluginResult = nil;
+    NSString* userId = command.arguments && command.arguments.count>0 ? [command.arguments objectAtIndex:0] : nil;
+    NSString* jwtToken = command.arguments && command.arguments.count>0 ? [command.arguments objectAtIndex:1] : nil;
+
+    if ((userId != nil && userId.length > 0) && (jwtToken != nil && jwtToken.length > 0)) {
+        [[WebEngage sharedInstance].user setSecureToken:userId jwtToken:jwtToken];
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    } else {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
+    }
+    
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
+
 - (void)logout:(CDVInvokedUrlCommand *)command {
     CDVPluginResult* pluginResult = nil;
     [[WebEngage sharedInstance].user loggedOut];

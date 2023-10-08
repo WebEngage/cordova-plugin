@@ -126,6 +126,10 @@ WebEngageUserChannel.prototype.login = function(userId, jwtToken) {
 	exec(null, null, "WebEngagePlugin", "login", [userId, jwtToken]);
 }
 
+WebEngageUserChannel.prototype.login = function(userId, jwtToken) {
+	exec(null, null, "WebEngagePlugin", "setSecureToken", [userId, jwtToken]);
+}
+
 WebEngageUserChannel.prototype.logout = function() {
 	exec(null, null, "WebEngagePlugin", "logout",[]);
 };
