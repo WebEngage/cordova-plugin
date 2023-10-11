@@ -11,7 +11,7 @@
 + (WebEngagePlugin *)webEngagePlugin;
 
 - (void)handlePushNotificationPendingDeepLinks;
-
+- (void)registerSDKSecurityCallback;
 
 //Public APIs
 //This one's for debugging

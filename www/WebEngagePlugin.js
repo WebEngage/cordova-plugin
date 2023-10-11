@@ -126,7 +126,7 @@ WebEngageUserChannel.prototype.login = function(userId, jwtToken) {
 	exec(null, null, "WebEngagePlugin", "login", [userId, jwtToken]);
 }
 
-WebEngageUserChannel.prototype.login = function(userId, jwtToken) {
+WebEngageUserChannel.prototype.setSecureToken = function(userId, jwtToken) {
 	exec(null, null, "WebEngagePlugin", "setSecureToken", [userId, jwtToken]);
 }
 
@@ -147,13 +147,19 @@ WebEngageUserChannel.prototype.setDevicePushOptIn = function(optIn) {
 	exec(null, null, "WebEngagePlugin", "setDevicePushOptIn", [optIn]);
 };
 
-WebEngageJWTManager.prototype.tokenInvalidatedCallback = function(callback) {
-	this.tokenInvalidatedCallback = callback;
-};
-
 function WebEngageJWTManager () {
 	this.tokenInvalidatedCallback = function(){};
 	this._options = {};
+}
+WebEngageJWTManager.prototype.ontokenInvalidatedCallback = function(callback) {
+	this.tokenInvalidatedCallback = callback;
+	
+};
+	
+WebEngageJWTManager.prototype.onCallbackReceived = function(type, errorMessage){
+	if (type == 'expired'){
+		this.tokenInvalidatedCallback(errorMessage);
+	}
 }
 
 function isValidJavascriptObject(val) {
