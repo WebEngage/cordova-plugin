@@ -11,7 +11,7 @@ android {
     defaultConfig {
         minSdkVersion 21
         targetSdkVersion 33
-        manifestPlaceholders = [io_version: readVersion()]
+        manifestPlaceholders.io_version = readVersion()
         versionCode 1
         versionName "1.0"
     }
@@ -47,5 +47,5 @@ allprojects {
     }
 }
 dependencies {
-    api 'com.webengage:android-sdk:[3,)'
+    api 'com.webengage:android-sdk:[4,)'
 }
