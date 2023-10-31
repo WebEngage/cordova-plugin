@@ -122,10 +122,9 @@ WebEngageNotificationChannel.prototype.onCallbackReceived = function(type, notif
 function WebEngageUserChannel() {
 }
 
-WebEngageUserChannel.prototype.login = function(userId, jwtToken) {
-	exec(null, null, "WebEngagePlugin", "login", [userId, jwtToken]);
-}
-
+WebEngageUserChannel.prototype.login = function(userId, secureToken = null) {
+	exec(null, null, "WebEngagePlugin", "login", [userId, secureToken]);
+};
 WebEngageUserChannel.prototype.setSecureToken = function(userId, jwtToken) {
 	exec(null, null, "WebEngagePlugin", "setSecureToken", [userId, jwtToken]);
 }
