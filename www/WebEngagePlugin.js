@@ -150,7 +150,7 @@ function WebEngageJWTManager () {
 	this.tokenInvalidatedCallback = function(){};
 	this._options = {};
 }
-WebEngageJWTManager.prototype.ontokenInvalidatedCallback = function(callback) {
+WebEngageJWTManager.prototype.tokenInvalidatedCallback = function(callback) {
 	this.tokenInvalidatedCallback = callback;
 	
 };
