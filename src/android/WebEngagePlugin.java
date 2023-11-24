@@ -142,6 +142,9 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                     if (!androidConfig.isNull("pushProjectNumber")) {
                         configBuilder.setGCMProjectNumber(androidConfig.optString("pushProjectNumber"));
                     }
+                    if(!androidConfig.isNull("autoGAIDTracking") && androidConfig.getBoolean("autoGAIDTracking") == false) {
+                        configBuilder.setAutoGAIDTracking(false);
+                    }
                     if (!androidConfig.isNull("locationTrackingStrategy")) {
                         if ("accuracy_best".equals(androidConfig.optString("locationTrackingStrategy"))) {
                             configBuilder.setLocationTrackingStrategy(LocationTrackingStrategy.ACCURACY_BEST);
@@ -289,6 +292,9 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                     Logger.e("WebEngagePlugin", "Invalid channel: " + channel + ". Must be one of [push, sms, email, in_app, whatsapp, viber].");
                 }            
             }
+        }
+        else if("startGAIDTracking".equals(action)){
+            WebEngage.get().startGAIDTracking();
         }
 
         return true;
