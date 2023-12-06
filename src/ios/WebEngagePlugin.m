@@ -14,6 +14,12 @@
 #define WE_COMPANY @"we_company"
 #define WE_HASHED_EMAIL @"we_hashed_email"
 #define WE_HASHED_PHONE @"we_hashed_phone"
+#define PUSH @"push"
+#define SMS @"sms"
+#define EMAIL @"email"
+#define IN_APP @"in_app"
+#define WHATSAPP @"whatsapp"
+#define VIBER @"viber"
 
 @interface WebEngagePlugin()
 
@@ -223,16 +229,18 @@ static WebEngagePlugin *webEngagePlugin;
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
-- (void)screenNavigated:(CDVInvokedUrlCommand *)command {   
+- (void)screenNavigated:(CDVInvokedUrlCommand *)command {
     CDVPluginResult* pluginResult = nil;
     NSString *screenName = command.arguments && command.arguments.count>0 ? [command.arguments objectAtIndex:0] : nil;
     
     if (screenName != nil && screenName.length > 0) {
         id screenData = command.arguments && command.arguments.count>1 ? [command.arguments objectAtIndex:1] : nil;
         if (screenData && [screenData isKindOfClass:[NSDictionary class]]) {
-            [[WebEngage sharedInstance].analytics navigatingToScreenWithName:screenName andData:[self convertISODateStringValuesToNSDate:screenData]];
+            [[WebEngage sharedInstance].analytics
+             trackEventWithName:screenName
+             andValue:[self convertISODateStringValuesToNSDate:screenData]];
         } else {
-            [[WebEngage sharedInstance].analytics navigatingToScreenWithName:screenName];
+            [[WebEngage sharedInstance].analytics trackEventWithName:screenName];
         }
         
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
@@ -446,6 +454,45 @@ static WebEngagePlugin *webEngagePlugin;
             }
         }];
     }
+}
+
+- (void)setUserOptIn:(CDVInvokedUrlCommand *)command {
+    CDVPluginResult* pluginResult = nil;
+    CDVPluginResult* pluginResult = nil;
+    BOOL status = nil;
+    
+    NSString* ch = command.arguments && command.arguments.count>0 ? [command.arguments objectAtIndex:0] : nil;
+    if (command.arguments && command.arguments.count > 1) {
+        status = [[command.arguments objectAtIndex:1] boolValue];
+    }
+    if(status == nil && ch == nil){
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
+    }
+    else
+    {if ([ch isEqualToString:PUSH]) {
+        [[WebEngage sharedInstance].user setOptInStatusForChannel:WEGEngagementChannelPush status:status];
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    } else if ([ch isEqualToString:SMS]) {
+        [[WebEngage sharedInstance].user setOptInStatusForChannel:WEGEngagementChannelSMS status:status];
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    } else if ([ch isEqualToString:EMAIL]) {
+        [[WebEngage sharedInstance].user setOptInStatusForChannel:WEGEngagementChannelEmail status:status];
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    } else if ([ch isEqualToString:IN_APP]) {
+        [[WebEngage sharedInstance].user setOptInStatusForChannel:WEGEngagementChannelInApp status:status];
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    } else if ([ch isEqualToString:WHATSAPP]) {
+        [[WebEngage sharedInstance].user setOptInStatusForChannel:WEGEngagementChannelWhatsapp status:status];
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    }else if ([ch isEqualToString:VIBER]) {
+            [[WebEngage sharedInstance].user setOptInStatusForChannel:WEGEngagementChannelViber status:status];
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    } else {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
+    }
+    }
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+
 }
 
 @end
