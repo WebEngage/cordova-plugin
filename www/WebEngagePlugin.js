@@ -147,7 +147,7 @@ WebEngageUserChannel.prototype.setDevicePushOptIn = function(optIn) {
 };
 
 function WebEngageJWTManager () {
-	this.tokenInvalidatedCallback = function(){};
+	this.tokenInvalidatedCallback = null;
 	this._options = {};
 }
 WebEngageJWTManager.prototype.tokenInvalidatedCallback = function(callback) {
@@ -157,7 +157,12 @@ WebEngageJWTManager.prototype.tokenInvalidatedCallback = function(callback) {
 	
 WebEngageJWTManager.prototype.onCallbackReceived = function(type, errorMessage){
 	if (type == 'expired'){
-		this.tokenInvalidatedCallback(errorMessage);
+		if(this.tokenInvalidatedCallback) {
+			console.log("Token invalidated!")
+			this.tokenInvalidatedCallback(errorMessage);
+		} else {
+			console.log("WebEngage: tokenInvalidatedCallback is not defined")
+		}
 	}
 }
 
