@@ -62,7 +62,6 @@
         </config-file>
 
         <resource-file src="src/android/version.properties" target="version.properties" />
-        <resource-file src="src/android/libs/android-sdk-debug.aar" target="libs/android-sdk-debug.aar" />
         <source-file src="src/android/WebEngagePlugin.java" target-dir="src/com/webengage/cordova/"/>
         <framework src="src/android/WebEngagePlugin.gradle" custom="true" type="gradleReference"/>
     </platform>
