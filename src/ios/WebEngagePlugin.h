@@ -10,6 +10,8 @@
 
 + (WebEngagePlugin *)webEngagePlugin;
 
+- (void)initialiseWEGVersions;
+
 - (void)handlePushNotificationPendingDeepLinks;
 
 

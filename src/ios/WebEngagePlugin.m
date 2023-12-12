@@ -20,6 +20,7 @@
 #define IN_APP @"in_app"
 #define WHATSAPP @"whatsapp"
 #define VIBER @"viber"
+#define WEGPluginVersion @"1.1.0"
 
 @interface WebEngagePlugin()
 
@@ -40,7 +41,9 @@ static WebEngagePlugin *webEngagePlugin;
     [super pluginInitialize];
     webEngagePlugin = self;
     self.pendingDeepLinkCallback = nil;
-    
+
+    [webEngagePlugin initialiseWEGVersions];
+
     NSDateFormatter* dateFormatter = [[NSDateFormatter alloc] init];
     [dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"];
     [dateFormatter setTimeZone:[NSTimeZone timeZoneWithAbbreviation:@"UTC"]];
@@ -54,6 +57,11 @@ static WebEngagePlugin *webEngagePlugin;
     [birthDateFormatter setLocale:[[NSLocale alloc] initWithLocaleIdentifier:@"gb"]];
     
     self.birthDateFormatter = birthDateFormatter;
+}
+
+- (void) initialiseWEGVersions {
+    WegVersionKey key = WegVersionKeyIO;
+    [[WebEngage sharedInstance] setVersionForChildSDK:WEGPluginVersion forKey:key];
 }
 
 - (void)handlePushNotificationPendingDeepLinks {
