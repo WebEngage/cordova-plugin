@@ -150,6 +150,12 @@ WebEngageNotificationChannel.prototype.onCallbackReceived = function (
     }
   }
 };
+function WebEngageUserChannel() {
+}
+
+WebEngageUserChannel.prototype.login = function(userId) {
+	exec(null, null, "WebEngagePlugin", "login", [userId]);
+};
 
 function WebEngageUserChannel() {}
 
