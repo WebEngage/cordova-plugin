@@ -466,7 +466,6 @@ static WebEngagePlugin *webEngagePlugin;
 
 - (void)setUserOptIn:(CDVInvokedUrlCommand *)command {
     CDVPluginResult* pluginResult = nil;
-    CDVPluginResult* pluginResult = nil;
     BOOL status = nil;
     
     NSString* ch = command.arguments && command.arguments.count>0 ? [command.arguments objectAtIndex:0] : nil;
