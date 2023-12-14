@@ -272,7 +272,7 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         } else if ("login".equals(action)) {
             if (args.length() == 1 && args.get(0) instanceof String) {
                 WebEngage.get().user().login(args.getString(0));
-            } else if(args.length() == 2 && args.get(0) instanceof String && args.get(0) == null) {
+            } else if (args.length() == 2 && args.get(0) instanceof String && (args.get(1) == null || "null".equals(args.getString(1)))) {
                 WebEngage.get().user().login(args.getString(0));
             } else if (args.length() == 2 && args.get(0) instanceof String && args.get(1) instanceof String) {
                 WebEngage.get().user().login(args.getString(0), args.getString(1));
