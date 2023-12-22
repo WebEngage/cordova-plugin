@@ -448,4 +448,10 @@ static WebEngagePlugin *webEngagePlugin;
     }
 }
 
+-(void)presentInAppController:(CDVInvokedUrlCommand *)command{
+    AppDelegate* appDelegate = [AppDelegate sharedInstance];
+    [appDelegate presentInAppController];
+}
+
+
 @end
