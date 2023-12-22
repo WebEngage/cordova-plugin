@@ -204,3 +204,11 @@ if (typeof module != "undefined" && module.exports) {
   var WebEngagePlugin = new WebEngagePlugin();
   module.exports = WebEngagePlugin;
 }
+
+WebEngageUserChannel.prototype.presentInAppController = function () {
+	if (typeof cordova !== 'undefined' && cordova.platformId === 'ios') {
+		exec(null, null, "WebEngagePlugin", "presentInAppController", []);
+	} else {
+		console.log("presentInAppController is not supported on this platform.");
+	}
+}
