@@ -1,6 +1,6 @@
 #import <WebEngage/WebEngage.h>
 #import "AppDelegate+WebEngagePlugin.h"
-
+#import "MainViewController.h"
 @interface WebEngagePluginUtils : NSObject
 
 + (instancetype)sharedInstance;
@@ -107,5 +107,37 @@
 - (void)setFreshLaunch:(BOOL)freshLaunch {
     [WebEngagePluginUtils sharedInstance].freshLaunch = freshLaunch;
 }
+
+
+
+- (void)presentInAppController {
+    
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        UIWindow *window = [UIApplication sharedApplication].windows.firstObject;
+
+        if (window) {
+            WKWebView *lastSubview = (WKWebView *)window.subviews.lastObject;
+            UIViewController *topViewController = [self topViewController];
+            
+            if ([lastSubview isKindOfClass:[WKWebView class]] && topViewController) {
+                [topViewController.view addSubview:lastSubview];
+                [topViewController.view bringSubviewToFront:lastSubview];
+            }
+        }
+    });
+
+}
+
+- (UIViewController *)topViewController {
+    UIViewController *rootViewController = [UIApplication sharedApplication].keyWindow.rootViewController;
+    
+    while (rootViewController.presentedViewController) {
+        rootViewController = rootViewController.presentedViewController;
+    }
+    
+    return rootViewController;
+}
+
+
 
 @end

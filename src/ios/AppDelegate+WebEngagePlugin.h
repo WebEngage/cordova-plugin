@@ -5,5 +5,5 @@
 + (instancetype)sharedInstance;
 - (BOOL)isFreshLaunch;
 - (void)setFreshLaunch:(BOOL)freshLaunch;
-
+- (void)presentInAppController;
 @end
