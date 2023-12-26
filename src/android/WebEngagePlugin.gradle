@@ -5,6 +5,41 @@ buildscript {
     }
 }
 
+android {
+    compileSdkVersion 33
+
+    defaultConfig {
+        minSdkVersion 21
+        targetSdkVersion 33
+        manifestPlaceholders.io_version = readVersion()
+        versionCode 2
+        versionName "1.2.0"
+    }
+    lintOptions {
+        abortOnError false
+    }
+}
+
+String readVersion() {
+    def version = new Properties()
+    def stream
+    try {
+        System.out.println("projectDir: " + projectDir)
+        println("projectDir: " + projectDir)
+        stream = new FileInputStream(new File(projectDir, './src/main/version.properties'))
+        version.load(stream)
+    } catch (FileNotFoundException ignore) {
+    } finally {
+        if (stream != null) stream.close()
+    }
+    // safety defaults in case file is missing
+    if(!version['major']) version['major'] = "1"
+    if(!version['minor']) version['minor'] = "0"
+    if(!version['patch']) version['patch'] = "0"
+    return "${version['major']}.${version['minor']}.${version['patch']}"
+}
+
+
 allprojects {
     repositories {
         mavenCentral();
@@ -12,5 +47,9 @@ allprojects {
     }
 }
 dependencies {
-    api 'com.webengage:android-sdk:[3,)'
+    implementation 'com.webengage:android-sdk:4.+'
+    implementation platform('com.google.firebase:firebase-bom:25.12.0')
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-messaging:20.2.1'
+    implementation 'com.google.android.gms:play-services-ads:15.0.1'
 }

@@ -10,6 +10,8 @@
 
 + (WebEngagePlugin *)webEngagePlugin;
 
+- (void)initialiseWEGVersions;
+
 - (void)handlePushNotificationPendingDeepLinks;
 
 
@@ -22,7 +24,8 @@
 - (void)logout:(CDVInvokedUrlCommand *)command;
 - (void)track:(CDVInvokedUrlCommand *)command;
 - (void)setAttribute:(CDVInvokedUrlCommand *)command;
-
+- (void)setUserOptIn:(CDVInvokedUrlCommand *)command;
+- (void)presentInAppController:(CDVInvokedUrlCommand *)command;
 + (void)evaluateJavaScript:(NSString *)script onWebView:(id)webView
           completionHandler:(void (^ _Nullable)(NSString * _Nullable response, NSError * _Nullable error))completionHandler;
 @end
