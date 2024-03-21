@@ -6,11 +6,11 @@ buildscript {
 }
 
 android {
-    compileSdkVersion 33
+    compileSdkVersion project.hasProperty('compileSdkVersion') ? rootProject.ext.compileSdkVersion : 33
 
     defaultConfig {
-        minSdkVersion 21
-        targetSdkVersion 33
+        minSdkVersion project.hasProperty('minSdkVersion') ? rootProject.ext.minSdkVersion : 21
+        targetSdkVersion project.hasProperty('targetSdkVersion') ? rootProject.ext.targetSdkVersion : 33
         manifestPlaceholders.io_version = readVersion()
         versionCode 2
         versionName "1.2.0"
