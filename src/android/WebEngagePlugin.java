@@ -261,6 +261,33 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                     }
                 }
             }
+        } else if("sendFcmToken".equals(action)){
+            if (args.length() > 0 && !args.isNull(0)) {
+                String fcmToken = null;
+                fcmToken = args.getString(0);
+                Logger.d(TAG, fcmToken + " " + fcmToken);
+                if (fcmToken != null) {
+                    WebEngage.get().setRegistrationID(fcmToken);
+                }
+            }
+        } else if("onMessageReceived".equals(action)){
+            if (args.length() > 0 && !args.isNull(0)) {
+                Map<String, Object> payload = null;
+                if (args.length() == 1 && args.get(0) instanceof JSONObject) {
+                    try {
+                        payload = (Map<String, Object>) fromJSON(args.getJSONObject(1));
+                        Map<String, String> data = (Map<String, String>) payload.get("data");
+                        if(data != null) {
+                            if(data.containsKey("source") && "webengage".equals(data.get("source"))) {
+                               WebEngage.get().receive(data);
+                            }
+                        }
+                    } catch (JSONException e) {
+                        Logger.d(TAG,  "Exception occurred onMessageReceived " + e.getMessage());
+                    }
+                }
+                
+            }
         } else if ("login".equals(action)) {
             if (args.length() == 1 && args.get(0) instanceof String) {
                 WebEngage.get().user().login(args.getString(0));

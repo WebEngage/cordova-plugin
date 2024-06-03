@@ -83,6 +83,18 @@ WebEngagePushChannel.prototype.onClick = function (callback) {
   this.clickCallback = callback;
 };
 
+WebEngagePushChannel.prototype.onMessageReceived = function (payload) {
+  if(cordova.platformId === "android"){
+    exec(null, null, "WebEngagePlugin", "onMessageReceived", [payload]);
+  }
+};
+
+WebEngagePushChannel.prototype.sendFcmToken = function (token) {
+  if(cordova.platformId === "android"){
+    exec(null, null, "WebEngagePlugin", "sendFcmToken", [token]);
+  }
+};
+
 WebEngagePushChannel.prototype.onCallbackReceived = function (
   type,
   uri,
@@ -176,8 +188,10 @@ WebEngageUserChannel.prototype.setAttribute = function (key, value) {
 };
 
 WebEngageUserChannel.prototype.setDevicePushOptIn = function (optIn) {
-  exec(null, null, "WebEngagePlugin", "setDevicePushOptIn", [optIn]);
-};
+	if(cordova.platformId === "android"){
+    exec(null, null, "WebEngagePlugin", "setDevicePushOptIn", [optIn]);
+  }
+}
 
 WebEngageUserChannel.prototype.setUserOptIn = function (channel, optIn) {
   exec(null, null, "WebEngagePlugin", "setUserOptIn", [channel, optIn]);
