@@ -41,7 +41,6 @@ static WebEngagePlugin *webEngagePlugin;
     [super pluginInitialize];
     webEngagePlugin = self;
     self.pendingDeepLinkCallback = nil;
-
     [webEngagePlugin initialiseWEGVersions];
 
     NSDateFormatter* dateFormatter = [[NSDateFormatter alloc] init];
@@ -240,15 +239,14 @@ static WebEngagePlugin *webEngagePlugin;
 - (void)screenNavigated:(CDVInvokedUrlCommand *)command {
     CDVPluginResult* pluginResult = nil;
     NSString *screenName = command.arguments && command.arguments.count>0 ? [command.arguments objectAtIndex:0] : nil;
+    id weAnalytics = [WebEngage sharedInstance].analytics;
     
     if (screenName != nil && screenName.length > 0) {
         id screenData = command.arguments && command.arguments.count>1 ? [command.arguments objectAtIndex:1] : nil;
         if (screenData && [screenData isKindOfClass:[NSDictionary class]]) {
-            [[WebEngage sharedInstance].analytics
-             trackEventWithName:screenName
-             andValue:[self convertISODateStringValuesToNSDate:screenData]];
+             [weAnalytics navigatingToScreenWithName:screenName andData:screenData];
         } else {
-            [[WebEngage sharedInstance].analytics trackEventWithName:screenName];
+            [weAnalytics navigatingToScreenWithName:screenName];
         }
         
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
