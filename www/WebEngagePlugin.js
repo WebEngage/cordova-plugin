@@ -1,10 +1,12 @@
 var exec = require("cordova/exec");
 
 function WebEngagePlugin() {
-  this.push = new WebEngagePushChannel();
-  this.notification = new WebEngageNotificationChannel();
-  this.user = new WebEngageUserChannel();
-  this._options = {};
+	this.push = new WebEngagePushChannel();
+	this.notification = new WebEngageNotificationChannel();
+	this.user = new WebEngageUserChannel();
+	this._options = {};
+	this.jwtManager = new WebEngageJWTManager();
+
 }
 
 WebEngagePlugin.prototype.engage = function (config) {
@@ -165,9 +167,12 @@ WebEngageNotificationChannel.prototype.onCallbackReceived = function (
 function WebEngageUserChannel() {
 }
 
-WebEngageUserChannel.prototype.login = function(userId) {
-	exec(null, null, "WebEngagePlugin", "login", [userId]);
+WebEngageUserChannel.prototype.login = function(userId, secureToken = null) {
+	exec(null, null, "WebEngagePlugin", "login", [userId, secureToken]);
 };
+WebEngageUserChannel.prototype.setSecureToken = function(userId, jwtToken) {
+	exec(null, null, "WebEngagePlugin", "setSecureToken", [userId, jwtToken]);
+}
 
 function WebEngageUserChannel() {}
 
@@ -196,6 +201,26 @@ WebEngageUserChannel.prototype.setDevicePushOptIn = function (optIn) {
 WebEngageUserChannel.prototype.setUserOptIn = function (channel, optIn) {
   exec(null, null, "WebEngagePlugin", "setUserOptIn", [channel, optIn]);
 };
+
+function WebEngageJWTManager () {
+	this.tokenInvalidatedCallback = null;
+	this._options = {};
+}
+WebEngageJWTManager.prototype.tokenInvalidatedCallback = function(callback) {
+	this.tokenInvalidatedCallback = callback;
+	
+};
+	
+WebEngageJWTManager.prototype.onCallbackReceived = function(type, errorMessage){
+	if (type == 'expired'){
+		if(this.tokenInvalidatedCallback) {
+			console.log("Token invalidated!")
+			this.tokenInvalidatedCallback(errorMessage);
+		} else {
+			console.log("WebEngage: tokenInvalidatedCallback is not defined")
+		}
+	}
+}
 
 function isValidJavascriptObject(val) {
   return (

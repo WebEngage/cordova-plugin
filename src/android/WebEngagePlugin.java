@@ -39,9 +39,10 @@ import com.webengage.sdk.android.callbacks.InAppNotificationCallbacks;
 import com.webengage.sdk.android.UserProfile;
 import com.webengage.sdk.android.utils.Gender;
 import com.webengage.sdk.android.Channel;
+import com.webengage.sdk.android.callbacks.WESecurityCallback;
 
 
-public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCallbacks, InAppNotificationCallbacks {
+public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCallbacks, InAppNotificationCallbacks, WESecurityCallback {
     private static final String TAG = "WebEngagePlugin";
     private static CordovaWebView webView;
 
@@ -83,12 +84,22 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     }
 
     @Override
+    public void onSecurityException(Map<String, Object> errorDetails) {
+        Log.e(TAG, "onSecurityException triggered  ");
+        if (errorDetails != null) {
+            JSONObject errorObject = new JSONObject(errorDetails);
+            webView.sendJavascript("javascript:webengage.jwtManager.onCallbackReceived('expired',  " + errorObject + ");");
+        }
+    }
+
+    @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
         Logger.v(TAG, "Execute: " + action);
 
         if ("engage".equals(action)) {
             WebEngage.registerPushNotificationCallback(this);
             WebEngage.registerInAppNotificationCallback(this);
+            WebEngage.registerWESecurityCallback(this);
 
             if (args != null && args.length() > 0 && args.get(0) instanceof JSONObject) {
                 // Dynamic config
@@ -291,6 +302,14 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         } else if ("login".equals(action)) {
             if (args.length() == 1 && args.get(0) instanceof String) {
                 WebEngage.get().user().login(args.getString(0));
+            } else if (args.length() == 2 && args.get(0) instanceof String && (args.get(1) == null || "null".equals(args.getString(1)))) {
+                WebEngage.get().user().login(args.getString(0));
+            } else if (args.length() == 2 && args.get(0) instanceof String && args.get(1) instanceof String) {
+                WebEngage.get().user().login(args.getString(0), args.getString(1));
+            }
+        } else if("setSecureToken".equals(action)) {
+            if (args.length() == 2 && args.get(0) instanceof String && args.get(1) instanceof String) {
+                WebEngage.get().setSecurityToken(args.getString(0), args.getString(1));
             }
         } else if ("logout".equals(action)) {
             WebEngage.get().user().logout();
