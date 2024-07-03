@@ -174,12 +174,6 @@ WebEngageUserChannel.prototype.setSecureToken = function(userId, jwtToken) {
 	exec(null, null, "WebEngagePlugin", "setSecureToken", [userId, jwtToken]);
 }
 
-function WebEngageUserChannel() {}
-
-WebEngageUserChannel.prototype.login = function (userId) {
-  exec(null, null, "WebEngagePlugin", "login", [userId]);
-};
-
 WebEngageUserChannel.prototype.logout = function () {
   exec(null, null, "WebEngagePlugin", "logout", []);
 };
@@ -203,19 +197,18 @@ WebEngageUserChannel.prototype.setUserOptIn = function (channel, optIn) {
 };
 
 function WebEngageJWTManager () {
-	this.tokenInvalidatedCallback = null;
+	this.invalidatedCallback = function () {};
 	this._options = {};
 }
 WebEngageJWTManager.prototype.tokenInvalidatedCallback = function(callback) {
-	this.tokenInvalidatedCallback = callback;
-	
+	this.invalidatedCallback = callback;
 };
 	
 WebEngageJWTManager.prototype.onCallbackReceived = function(type, errorMessage){
 	if (type == 'expired'){
-		if(this.tokenInvalidatedCallback) {
-			console.log("Token invalidated!")
-			this.tokenInvalidatedCallback(errorMessage);
+		if(this.invalidatedCallback) {
+      console.log("Token invalidated!")
+			this.invalidatedCallback(errorMessage);
 		} else {
 			console.log("WebEngage: tokenInvalidatedCallback is not defined")
 		}
