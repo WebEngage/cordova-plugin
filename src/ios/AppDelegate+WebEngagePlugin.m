@@ -1,6 +1,5 @@
 #import <WebEngage/WebEngage.h>
 #import "AppDelegate+WebEngagePlugin.h"
-#import "MainViewController.h"
 @interface WebEngagePluginUtils : NSObject
 
 + (instancetype)sharedInstance;

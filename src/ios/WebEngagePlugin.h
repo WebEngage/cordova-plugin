@@ -13,7 +13,7 @@
 - (void)initialiseWEGVersions;
 
 - (void)handlePushNotificationPendingDeepLinks;
-
+- (void)registerSDKSecurityCallback;
 
 //Public APIs
 //This one's for debugging
@@ -21,6 +21,7 @@
 
 - (void)engage:(CDVInvokedUrlCommand *)command;
 - (void)login:(CDVInvokedUrlCommand *)command;
+- (void)setSecureToken:(CDVInvokedUrlCommand *)command;
 - (void)logout:(CDVInvokedUrlCommand *)command;
 - (void)track:(CDVInvokedUrlCommand *)command;
 - (void)setAttribute:(CDVInvokedUrlCommand *)command;
