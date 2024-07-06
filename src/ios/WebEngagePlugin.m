@@ -20,7 +20,7 @@
 #define IN_APP @"in_app"
 #define WHATSAPP @"whatsapp"
 #define VIBER @"viber"
-#define WEGPluginVersion @"1.2.0"
+#define WEGPluginVersion @"1.3.0"
 
 @interface WebEngagePlugin()
 
@@ -41,7 +41,6 @@ static WebEngagePlugin *webEngagePlugin;
     [super pluginInitialize];
     webEngagePlugin = self;
     self.pendingDeepLinkCallback = nil;
-
     [webEngagePlugin initialiseWEGVersions];
 
     NSDateFormatter* dateFormatter = [[NSDateFormatter alloc] init];
@@ -55,7 +54,8 @@ static WebEngagePlugin *webEngagePlugin;
     [birthDateFormatter setDateFormat:@"yyyy-MM-dd"];
     [birthDateFormatter setTimeZone:[NSTimeZone timeZoneWithAbbreviation:@"UTC"]];
     [birthDateFormatter setLocale:[[NSLocale alloc] initWithLocaleIdentifier:@"gb"]];
-    
+   
+     [webEngagePlugin registerSDKSecurityCallback];
     self.birthDateFormatter = birthDateFormatter;
 }
 
@@ -237,18 +237,16 @@ static WebEngagePlugin *webEngagePlugin;
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
-- (void)screenNavigated:(CDVInvokedUrlCommand *)command {
+- (void)screenNavigated:(CDVInvokedUrlCommand *)command {   
     CDVPluginResult* pluginResult = nil;
     NSString *screenName = command.arguments && command.arguments.count>0 ? [command.arguments objectAtIndex:0] : nil;
     
     if (screenName != nil && screenName.length > 0) {
         id screenData = command.arguments && command.arguments.count>1 ? [command.arguments objectAtIndex:1] : nil;
         if (screenData && [screenData isKindOfClass:[NSDictionary class]]) {
-            [[WebEngage sharedInstance].analytics
-             trackEventWithName:screenName
-             andValue:[self convertISODateStringValuesToNSDate:screenData]];
+            [[WebEngage sharedInstance].analytics navigatingToScreenWithName:screenName andData:[self convertISODateStringValuesToNSDate:screenData]];
         } else {
-            [[WebEngage sharedInstance].analytics trackEventWithName:screenName];
+            [[WebEngage sharedInstance].analytics navigatingToScreenWithName:screenName];
         }
         
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
@@ -270,9 +268,29 @@ static WebEngagePlugin *webEngagePlugin;
 - (void)login:(CDVInvokedUrlCommand *)command {
     CDVPluginResult* pluginResult = nil;
     NSString* userId = command.arguments && command.arguments.count>0 ? [command.arguments objectAtIndex:0] : nil;
+    NSString* jwtToken = command.arguments && command.arguments.count>0 ? [command.arguments objectAtIndex:1] : nil;
     
-    if (userId != nil && userId.length > 0) {
-        [[WebEngage sharedInstance].user loggedIn: userId];
+    if ((userId != nil && userId != (id)[NSNull null] && userId.length > 0) && (jwtToken != nil && jwtToken != (id)[NSNull null] && jwtToken.length > 0)) {
+        [[WebEngage sharedInstance].user login:userId jwtToken:jwtToken];
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    } else if (userId != nil && userId.length > 0) {
+        [[WebEngage sharedInstance].user login: userId];
+
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    } else {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
+    }
+    
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
+
+- (void)setSecureToken:(CDVInvokedUrlCommand *)command{
+     CDVPluginResult* pluginResult = nil;
+    NSString* userId = command.arguments && command.arguments.count>0 ? [command.arguments objectAtIndex:0] : nil;
+    NSString* jwtToken = command.arguments && command.arguments.count>0 ? [command.arguments objectAtIndex:1] : nil;
+
+    if ((userId != nil && userId != (id)[NSNull null] && userId.length > 0) && (jwtToken != nil && jwtToken != (id)[NSNull null] && jwtToken.length > 0)) {
+        [[WebEngage sharedInstance].user setSecureToken:userId jwtToken:jwtToken];
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     } else {
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
@@ -468,38 +486,41 @@ static WebEngagePlugin *webEngagePlugin;
     CDVPluginResult* pluginResult = nil;
     BOOL status = nil;
     
-    NSString* ch = command.arguments && command.arguments.count>0 ? [command.arguments objectAtIndex:0] : nil;
+    NSString* ch = command.arguments && command.arguments.count > 0 ? [command.arguments objectAtIndex:0] : nil;
     if (command.arguments && command.arguments.count > 1) {
         status = [[command.arguments objectAtIndex:1] boolValue];
     }
-    if(status == nil && ch == nil){
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
+    
+    if (ch != nil) {
+        ch = [ch lowercaseString]; // Convert ch to lowercase
     }
-    else
-    {if ([ch isEqualToString:PUSH]) {
-        [[WebEngage sharedInstance].user setOptInStatusForChannel:WEGEngagementChannelPush status:status];
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-    } else if ([ch isEqualToString:SMS]) {
-        [[WebEngage sharedInstance].user setOptInStatusForChannel:WEGEngagementChannelSMS status:status];
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-    } else if ([ch isEqualToString:EMAIL]) {
-        [[WebEngage sharedInstance].user setOptInStatusForChannel:WEGEngagementChannelEmail status:status];
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-    } else if ([ch isEqualToString:IN_APP]) {
-        [[WebEngage sharedInstance].user setOptInStatusForChannel:WEGEngagementChannelInApp status:status];
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-    } else if ([ch isEqualToString:WHATSAPP]) {
-        [[WebEngage sharedInstance].user setOptInStatusForChannel:WEGEngagementChannelWhatsapp status:status];
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-    }else if ([ch isEqualToString:VIBER]) {
+    
+    if (status == nil && ch == nil) {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
+    } else {
+        if ([ch isEqualToString:[PUSH lowercaseString]]) {
+            [[WebEngage sharedInstance].user setOptInStatusForChannel:WEGEngagementChannelPush status:status];
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        } else if ([ch isEqualToString:[SMS lowercaseString]]) {
+            [[WebEngage sharedInstance].user setOptInStatusForChannel:WEGEngagementChannelSMS status:status];
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        } else if ([ch isEqualToString:[EMAIL lowercaseString]]) {
+            [[WebEngage sharedInstance].user setOptInStatusForChannel:WEGEngagementChannelEmail status:status];
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        } else if ([ch isEqualToString:[IN_APP lowercaseString]]) {
+            [[WebEngage sharedInstance].user setOptInStatusForChannel:WEGEngagementChannelInApp status:status];
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        } else if ([ch isEqualToString:[WHATSAPP lowercaseString]]) {
+            [[WebEngage sharedInstance].user setOptInStatusForChannel:WEGEngagementChannelWhatsapp status:status];
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        } else if ([ch isEqualToString:[VIBER lowercaseString]]) {
             [[WebEngage sharedInstance].user setOptInStatusForChannel:WEGEngagementChannelViber status:status];
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-    } else {
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
-    }
+        } else {
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
+        }
     }
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-
 }
 
 -(void)presentInAppController:(CDVInvokedUrlCommand *)command{
@@ -507,6 +528,18 @@ static WebEngagePlugin *webEngagePlugin;
     [appDelegate presentInAppController];
 }
 
+
+- (void) registerSDKSecurityCallback{
+ WEGJWTManager.shared.tokenInvalidatedCallback = ^(void){
+        NSDictionary *errorResponse = @{
+                        @"errorResponse" : @"401"
+                    };
+        NSData *data = [NSJSONSerialization dataWithJSONObject:errorResponse options:NSJSONWritingPrettyPrinted error:nil];
+        NSString *errorMessage = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+        [self.commandDelegate evalJs:
+        [NSString stringWithFormat: @"webengage.jwtManager.onCallbackReceived('expired', %@)",errorMessage]];
+    };
+}
 
 @end
 

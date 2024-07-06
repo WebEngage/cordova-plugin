@@ -1,10 +1,12 @@
 var exec = require("cordova/exec");
 
 function WebEngagePlugin() {
-  this.push = new WebEngagePushChannel();
-  this.notification = new WebEngageNotificationChannel();
-  this.user = new WebEngageUserChannel();
-  this._options = {};
+	this.push = new WebEngagePushChannel();
+	this.notification = new WebEngageNotificationChannel();
+	this.user = new WebEngageUserChannel();
+	this._options = {};
+	this.jwtManager = new WebEngageJWTManager();
+
 }
 
 WebEngagePlugin.prototype.engage = function (config) {
@@ -83,6 +85,18 @@ WebEngagePushChannel.prototype.onClick = function (callback) {
   this.clickCallback = callback;
 };
 
+WebEngagePushChannel.prototype.onMessageReceived = function (payload) {
+  if(cordova.platformId === "android"){
+    exec(null, null, "WebEngagePlugin", "onMessageReceived", [payload]);
+  }
+};
+
+WebEngagePushChannel.prototype.sendFcmToken = function (token) {
+  if(cordova.platformId === "android"){
+    exec(null, null, "WebEngagePlugin", "sendFcmToken", [token]);
+  }
+};
+
 WebEngagePushChannel.prototype.onCallbackReceived = function (
   type,
   uri,
@@ -153,15 +167,12 @@ WebEngageNotificationChannel.prototype.onCallbackReceived = function (
 function WebEngageUserChannel() {
 }
 
-WebEngageUserChannel.prototype.login = function(userId) {
-	exec(null, null, "WebEngagePlugin", "login", [userId]);
+WebEngageUserChannel.prototype.login = function(userId, secureToken = null) {
+	exec(null, null, "WebEngagePlugin", "login", [userId, secureToken]);
 };
-
-function WebEngageUserChannel() {}
-
-WebEngageUserChannel.prototype.login = function (userId) {
-  exec(null, null, "WebEngagePlugin", "login", [userId]);
-};
+WebEngageUserChannel.prototype.setSecureToken = function(userId, jwtToken) {
+	exec(null, null, "WebEngagePlugin", "setSecureToken", [userId, jwtToken]);
+}
 
 WebEngageUserChannel.prototype.logout = function () {
   exec(null, null, "WebEngagePlugin", "logout", []);
@@ -176,12 +187,33 @@ WebEngageUserChannel.prototype.setAttribute = function (key, value) {
 };
 
 WebEngageUserChannel.prototype.setDevicePushOptIn = function (optIn) {
-  exec(null, null, "WebEngagePlugin", "setDevicePushOptIn", [optIn]);
-};
+	if(cordova.platformId === "android"){
+    exec(null, null, "WebEngagePlugin", "setDevicePushOptIn", [optIn]);
+  }
+}
 
 WebEngageUserChannel.prototype.setUserOptIn = function (channel, optIn) {
   exec(null, null, "WebEngagePlugin", "setUserOptIn", [channel, optIn]);
 };
+
+function WebEngageJWTManager () {
+	this.invalidatedCallback = function () {};
+	this._options = {};
+}
+WebEngageJWTManager.prototype.tokenInvalidatedCallback = function(callback) {
+	this.invalidatedCallback = callback;
+};
+	
+WebEngageJWTManager.prototype.onCallbackReceived = function(type, errorMessage){
+	if (type == 'expired'){
+		if(this.invalidatedCallback) {
+      console.log("Token invalidated!")
+			this.invalidatedCallback(errorMessage);
+		} else {
+			console.log("WebEngage: tokenInvalidatedCallback is not defined")
+		}
+	}
+}
 
 function isValidJavascriptObject(val) {
   return (
