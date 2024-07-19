@@ -20,7 +20,7 @@
 #define IN_APP @"in_app"
 #define WHATSAPP @"whatsapp"
 #define VIBER @"viber"
-#define WEGPluginVersion @"1.3.0"
+#define WEGPluginVersion @"1.3.1"
 
 @interface WebEngagePlugin()
 
