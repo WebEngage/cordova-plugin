@@ -281,23 +281,30 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                     WebEngage.get().setRegistrationID(fcmToken);
                 }
             }
-        } else if("onMessageReceived".equals(action)){
+        } else if("onMessageReceived".equals(action)) {
             if (args.length() > 0 && !args.isNull(0)) {
-                Map<String, Object> payload = null;
-                if (args.length() == 1 && args.get(0) instanceof JSONObject) {
-                    try {
-                        payload = (Map<String, Object>) fromJSON(args.getJSONObject(1));
-                        Map<String, String> data = (Map<String, String>) payload.get("data");
-                        if(data != null) {
-                            if(data.containsKey("source") && "webengage".equals(data.get("source"))) {
-                               WebEngage.get().receive(data);
+                try {
+                    String jsonString = args.getString(0);
+                    JSONObject jsonObject = new JSONObject(jsonString);
+                    Map<String, String> map = new HashMap<>();
+                    for (Iterator<String> it = jsonObject.keys(); it.hasNext(); ) {
+                        String key = it.next();
+                        if (key.equals("message_data")) {
+                            if(jsonObject.get(key) instanceof JSONObject) {
+                                map.put(key, jsonObject.getJSONObject(key).toString());
                             }
+                        } else {
+                            map.put(key, jsonObject.get(key).toString());
                         }
-                    } catch (JSONException e) {
-                        Logger.d(TAG,  "Exception occurred onMessageReceived " + e.getMessage());
                     }
+                    if(map.containsKey("source") && "webengage".equals(map.get("source")) && map.containsKey("message_data")) {
+                        WebEngage.get().receive(map);
+                    } else {
+                        Log.d(TAG, "WebEngage: Invalid payload passed to WebEngage");
+                    }
+                } catch (JSONException e) {
+                    callbackContext.error("JSON parsing error: " + e.getMessage());
                 }
-                
             }
         } else if ("login".equals(action)) {
             if (args.length() == 1 && args.get(0) instanceof String) {
