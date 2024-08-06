@@ -282,20 +282,17 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                 }
             }
         } else if("onMessageReceived".equals(action)) {
-            if (args.length() > 0 && !args.isNull(0)) {
+            if (args != null && args.length() > 0 && !args.isNull(0)) {
                 try {
                     String jsonString = args.getString(0);
                     JSONObject jsonObject = new JSONObject(jsonString);
                     Map<String, String> map = new HashMap<>();
-                    for (Iterator<String> it = jsonObject.keys(); it.hasNext(); ) {
-                        String key = it.next();
-                        if (key.equals("message_data")) {
-                            if(jsonObject.get(key) instanceof JSONObject) {
-                                map.put(key, jsonObject.getJSONObject(key).toString());
-                            }
-                        } else {
-                            map.put(key, jsonObject.get(key).toString());
-                        }
+                    Iterator<String> keys = jsonObject.keys();
+
+                    while (keys.hasNext()) {
+                        String key = keys.next();
+                        String value = jsonObject.getString(key);
+                        map.put(key, value);
                     }
                     if(map.containsKey("source") && "webengage".equals(map.get("source")) && map.containsKey("message_data")) {
                         WebEngage.get().receive(map);
