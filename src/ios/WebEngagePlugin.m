@@ -1,7 +1,6 @@
 /********* WebEngagePlugin.m Cordova Plugin Implementation *******/
 
 #import <Cordova/CDV.h>
-#import <WebEngage/WebEngage.h>
 #import "WebEngagePlugin.h"
 #import <WebKit/WebKit.h>
 
