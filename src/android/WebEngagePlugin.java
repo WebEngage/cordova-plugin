@@ -342,7 +342,22 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                     Logger.e("WebEngagePlugin", "Invalid channel: " + channel + ". Must be one of [push, sms, email, in_app, whatsapp, viber].");
                 }            
             }
+        } else if("setLocation".equals(action)) {
+            Logger.d("WebEngagePlugin", "setLocation: triggered");
+            if (args.length() == 2) {
+                try {
+                    double latitude = Double.parseDouble(args.getString(0));
+                    double longitude = Double.parseDouble(args.getString(1));
+                    Logger.d("WebEngagePlugin", "setLocation: valid arguments");
+                    WebEngage.get().user().setLocation(latitude, longitude);
+                } catch (NumberFormatException e) {
+                    Logger.d("WebEngagePlugin", "setLocation: invalid arguments, unable to parse to Double");
+                }
+            } else {
+                Logger.d("WebEngagePlugin", "setLocation: invalid number of arguments");
+            }
         }
+
         else if("startGAIDTracking".equals(action)){
             WebEngage.get().startGAIDTracking();
         }

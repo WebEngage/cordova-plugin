@@ -298,6 +298,40 @@ static WebEngagePlugin *webEngagePlugin;
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
+- (void)setLocation:(CDVInvokedUrlCommand *)command {
+    if ([command.arguments count] == 2) {
+        id latitude = [command.arguments objectAtIndex:0];
+        id longitude = [command.arguments objectAtIndex:1];
+
+        NSNumber *latNumber;
+        NSNumber *lonNumber;
+
+        if ([latitude isKindOfClass:[NSString class]] && [longitude isKindOfClass:[NSString class]]) {
+            // Convert NSString to NSNumber
+            NSNumberFormatter *formatter = [[NSNumberFormatter alloc] init];
+            formatter.numberStyle = NSNumberFormatterDecimalStyle;
+
+            latNumber = [formatter numberFromString:latitude];
+            lonNumber = [formatter numberFromString:longitude];
+
+            if (!latNumber || !lonNumber) {
+                NSLog(@"WebEngagePlugin: setLocation invalid number format");
+                return;
+            }
+        } else if ([latitude isKindOfClass:[NSNumber class]] && [longitude isKindOfClass:[NSNumber class]]) {
+            
+            latNumber = (NSNumber *)latitude;
+            lonNumber = (NSNumber *)longitude;
+        } else {
+            NSLog(@"WebEngagePlugin: setLocation invalid arguments");
+            return;
+        }
+        [[WebEngage sharedInstance].user setUserLocationWithLatitude:latNumber andLongitude:lonNumber];
+    }
+}
+
+
+
 - (void)logout:(CDVInvokedUrlCommand *)command {
     CDVPluginResult* pluginResult = nil;
     [[WebEngage sharedInstance].user loggedOut];
