@@ -196,6 +196,10 @@ WebEngageUserChannel.prototype.setUserOptIn = function (channel, optIn) {
   exec(null, null, "WebEngagePlugin", "setUserOptIn", [channel, optIn]);
 };
 
+WebEngageUserChannel.prototype.setLocation = function (lat, lng) {
+  exec(null, null, "WebEngagePlugin", "setLocation", [lat, lng]);
+};
+
 function WebEngageJWTManager () {
 	this.invalidatedCallback = function () {};
 	this._options = {};

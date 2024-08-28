@@ -1,7 +1,6 @@
 /********* WebEngagePlugin.m Cordova Plugin Implementation *******/
 
 #import <Cordova/CDV.h>
-#import <WebEngage/WebEngage.h>
 #import "WebEngagePlugin.h"
 #import <WebKit/WebKit.h>
 
@@ -20,7 +19,7 @@
 #define IN_APP @"in_app"
 #define WHATSAPP @"whatsapp"
 #define VIBER @"viber"
-#define WEGPluginVersion @"1.3.1"
+#define WEGPluginVersion @"1.3.2"
 
 @interface WebEngagePlugin()
 
@@ -298,6 +297,40 @@ static WebEngagePlugin *webEngagePlugin;
     
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
+
+- (void)setLocation:(CDVInvokedUrlCommand *)command {
+    if ([command.arguments count] == 2) {
+        id latitude = [command.arguments objectAtIndex:0];
+        id longitude = [command.arguments objectAtIndex:1];
+
+        NSNumber *latNumber;
+        NSNumber *lonNumber;
+
+        if ([latitude isKindOfClass:[NSString class]] && [longitude isKindOfClass:[NSString class]]) {
+            // Convert NSString to NSNumber
+            NSNumberFormatter *formatter = [[NSNumberFormatter alloc] init];
+            formatter.numberStyle = NSNumberFormatterDecimalStyle;
+
+            latNumber = [formatter numberFromString:latitude];
+            lonNumber = [formatter numberFromString:longitude];
+
+            if (!latNumber || !lonNumber) {
+                NSLog(@"WebEngagePlugin: setLocation invalid number format");
+                return;
+            }
+        } else if ([latitude isKindOfClass:[NSNumber class]] && [longitude isKindOfClass:[NSNumber class]]) {
+            
+            latNumber = (NSNumber *)latitude;
+            lonNumber = (NSNumber *)longitude;
+        } else {
+            NSLog(@"WebEngagePlugin: setLocation invalid arguments");
+            return;
+        }
+        [[WebEngage sharedInstance].user setUserLocationWithLatitude:latNumber andLongitude:lonNumber];
+    }
+}
+
+
 
 - (void)logout:(CDVInvokedUrlCommand *)command {
     CDVPluginResult* pluginResult = nil;
