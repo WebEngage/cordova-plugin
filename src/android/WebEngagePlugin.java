@@ -281,23 +281,27 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                     WebEngage.get().setRegistrationID(fcmToken);
                 }
             }
-        } else if("onMessageReceived".equals(action)){
-            if (args.length() > 0 && !args.isNull(0)) {
-                Map<String, Object> payload = null;
-                if (args.length() == 1 && args.get(0) instanceof JSONObject) {
-                    try {
-                        payload = (Map<String, Object>) fromJSON(args.getJSONObject(1));
-                        Map<String, String> data = (Map<String, String>) payload.get("data");
-                        if(data != null) {
-                            if(data.containsKey("source") && "webengage".equals(data.get("source"))) {
-                               WebEngage.get().receive(data);
-                            }
-                        }
-                    } catch (JSONException e) {
-                        Logger.d(TAG,  "Exception occurred onMessageReceived " + e.getMessage());
+        } else if("onMessageReceived".equals(action)) {
+            if (args != null && args.length() > 0 && !args.isNull(0)) {
+                try {
+                    String jsonString = args.getString(0);
+                    JSONObject jsonObject = new JSONObject(jsonString);
+                    Map<String, String> map = new HashMap<>();
+                    Iterator<String> keys = jsonObject.keys();
+
+                    while (keys.hasNext()) {
+                        String key = keys.next();
+                        String value = jsonObject.getString(key);
+                        map.put(key, value);
                     }
+                    if(map.containsKey("source") && "webengage".equals(map.get("source")) && map.containsKey("message_data")) {
+                        WebEngage.get().receive(map);
+                    } else {
+                        Log.d(TAG, "WebEngage: Invalid payload passed to WebEngage");
+                    }
+                } catch (JSONException e) {
+                    callbackContext.error("JSON parsing error: " + e.getMessage());
                 }
-                
             }
         } else if ("login".equals(action)) {
             if (args.length() == 1 && args.get(0) instanceof String) {
@@ -338,7 +342,22 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                     Logger.e("WebEngagePlugin", "Invalid channel: " + channel + ". Must be one of [push, sms, email, in_app, whatsapp, viber].");
                 }            
             }
+        } else if("setLocation".equals(action)) {
+            Logger.d("WebEngagePlugin", "setLocation: triggered");
+            if (args.length() == 2) {
+                try {
+                    double latitude = Double.parseDouble(args.getString(0));
+                    double longitude = Double.parseDouble(args.getString(1));
+                    Logger.d("WebEngagePlugin", "setLocation: valid arguments");
+                    WebEngage.get().user().setLocation(latitude, longitude);
+                } catch (NumberFormatException e) {
+                    Logger.d("WebEngagePlugin", "setLocation: invalid arguments, unable to parse to Double");
+                }
+            } else {
+                Logger.d("WebEngagePlugin", "setLocation: invalid number of arguments");
+            }
         }
+
         else if("startGAIDTracking".equals(action)){
             WebEngage.get().startGAIDTracking();
         }

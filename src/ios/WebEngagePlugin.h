@@ -1,5 +1,6 @@
 #import "AppDelegate+WebEngagePlugin.h"
 #import <Cordova/CDVPlugin.h>
+#import <WebEngage/WebEngage.h>
 
 @interface WebEngagePlugin : CDVPlugin<WEGInAppNotificationProtocol>
 
