@@ -30,7 +30,7 @@
                 <source url="https://github.com/CocoaPods/Specs.git"/>
             </config>
             <pods use-frameworks="true">
-                <pod name="WebEngage" spec="6.8.1" />
+                <pod name="WebEngage" />
             </pods>
         </podspec>
 	</platform>
