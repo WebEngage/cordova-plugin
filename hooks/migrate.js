@@ -281,6 +281,7 @@ function migrateInfoPlist(infoPlist, config) {
 		var licenseCode = infoPlistObj['WEGLicenseCode'];
 		var apnsAutoRegister = infoPlistObj['WEGApnsAutoRegister'];
 		var logLevel = infoPlistObj['WEGLogLevel'];
+		var sessionTimeout = infoPlistObj['WEGSessionTimeOut'];
 
 		var platforms = config.platform;
 		var iosPlatforms = platforms.filter(
@@ -334,6 +335,17 @@ function migrateInfoPlist(infoPlist, config) {
 				var logLevelConfigFile = {"string": logLevel};
 				logLevelConfigFile['$'] = {"parent": "WEGLogLevel", "target": "*-Info.plist"};
 				configFiles.push(logLevelConfigFile);
+			}
+		}
+
+		if (sessionTimeout) {
+			var sessionTimeoutConfigFiles = configFiles.filter(
+				configFile => (configFile && configFile['$'] && configFile['$']['target'] == "*-Info.plist" && configFile['$']['parent'] == "WEGSessionTimeOut")
+			);
+			if (!sessionTimeoutConfigFiles || sessionTimeoutConfigFiles.length == 0) {
+				var sessionTimeoutConfigFile = {"string": sessionTimeout};
+				sessionTimeoutConfigFile['$'] = {"parent": "WEGSessionTimeOut", "target": "*-Info.plist"};
+				configFiles.push(sessionTimeoutConfigFile);
 			}
 		}
 	} catch(e) {
