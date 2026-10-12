@@ -1,53 +1,58 @@
 <?xml version='1.0' encoding='utf-8'?>
-<plugin id="cordova-plugin-webengage" version="1.3.2" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
-	<name>WebEngagePlugin</name>
-	<js-module name="WebEngagePlugin" src="www/WebEngagePlugin.js">
-		<clobbers target="webengage" />
-	</js-module>
+<plugin id="cordova-plugin-webengage" version="2.0.0" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
+    <name>WebEngagePlugin</name>
+    <js-module name="WebEngagePlugin" src="www/WebEngagePlugin.js">
+        <clobbers target="webengage" />
+    </js-module>
 
-	<platform name="ios">
-		<config-file parent="/*" target="config.xml">
-			<feature name="WebEngagePlugin">
-				<param name="ios-package" value="WebEngagePlugin" />
-                <param name="onload" value="true"/>
-			</feature>
-		</config-file>
+    <engines>
+        <engine name="cordova-android" version=">=12.0.0" />
+        <engine name="cordova-ios" version=">=7.0.0" />
+    </engines>
 
-		<config-file parent="UIBackgroundModes" target="*Info.plist">
-			<array>
-				<string>fetch</string>
-				<string>remote-notification</string>
-			</array>
-		</config-file>
+    <platform name="ios" package="swift">
+        <config-file parent="/*" target="config.xml">
+            <feature name="WebEngagePlugin">
+                <param name="ios-package" value="WebEngagePlugin" />
+                <param name="onload" value="true" />
+            </feature>
+        </config-file>
 
-		<header-file src="src/ios/WebEngagePlugin.h" />
-		<source-file src="src/ios/WebEngagePlugin.m" />
-		<header-file src="src/ios/AppDelegate+WebEngagePlugin.h" />
-		<source-file src="src/ios/AppDelegate+WebEngagePlugin.m" />
+        <config-file parent="UIBackgroundModes" target="*Info.plist">
+            <array>
+                <string>fetch</string>
+                <string>remote-notification</string>
+            </array>
+        </config-file>
+
+        <header-file src="src/ios/WebEngagePlugin.h" />
+        <source-file src="src/ios/WebEngagePlugin.m" />
+        <header-file src="src/ios/WEGAppDelegateHelper.h" />
+        <source-file src="src/ios/WEGAppDelegateHelper.m" />
+        <header-file src="src/ios/WEGJSString.h" />
 
         <podspec>
             <config>
-                <source url="https://github.com/CocoaPods/Specs.git"/>
+                <source url="https://github.com/CocoaPods/Specs.git" />
             </config>
             <pods use-frameworks="true">
-                <pod name="WebEngage" />
+                <pod name="WebEngage" spec=">= 6.16.6" nospm="true" />
             </pods>
         </podspec>
-	</platform>
-    
+    </platform>
+
     <platform name="android">
         <config-file target="config.xml" parent="/*">
             <feature name="WebEngagePlugin">
                 <param name="android-package" value="com.webengage.cordova.WebEngagePlugin" />
             </feature>
         </config-file>
+
         <config-file target="AndroidManifest.xml" parent="/manifest">
-            <uses-permission android:name="android.permission.INTERNET"/>
+            <uses-permission android:name="android.permission.INTERNET" />
             <uses-permission android:name="android.permission.WAKE_LOCK" />
         </config-file>
-        
 
-        
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
             <receiver
                 android:name="com.webengage.sdk.android.InstallTracker"
@@ -57,13 +62,13 @@
                 </intent-filter>
             </receiver>
             <meta-data
-            android:name="com.webengage.child.io"
-            android:value="io:${io_version}" />
+                android:name="com.webengage.child.io"
+                android:value="io:${io_version}" />
         </config-file>
 
         <resource-file src="src/android/version.properties" target="version.properties" />
-        <source-file src="src/android/WebEngagePlugin.java" target-dir="src/com/webengage/cordova/"/>
-        <framework src="src/android/WebEngagePlugin.gradle" custom="true" type="gradleReference"/>
+        <source-file src="src/android/WebEngagePlugin.java" target-dir="src/com/webengage/cordova/" />
+        <framework src="src/android/WebEngagePlugin.gradle" custom="true" type="gradleReference" />
     </platform>
 
     <hook src="hooks/migrate.js" type="after_plugin_add" />

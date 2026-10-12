@@ -4,6 +4,7 @@ import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaWebView;
 import org.apache.cordova.CallbackContext;
+import org.apache.cordova.PluginResult;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -44,7 +45,7 @@ import com.webengage.sdk.android.callbacks.WESecurityCallback;
 
 public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCallbacks, InAppNotificationCallbacks, WESecurityCallback {
     private static final String TAG = "WebEngagePlugin";
-    private static CordovaWebView webView;
+    private static CallbackContext eventChannelCallbackContext;
 
     private Map<String, Object> pushOptions = new HashMap<String, Object>();
     private static final String PUSH_SOUND = "sound";
@@ -79,8 +80,14 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     @Override
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         super.initialize(cordova, webView);
-        this.webView = webView;
         Log.d(TAG, "Intialized");
+    }
+
+    @Override
+    public void onReset() {
+        // The page changed; the plugin JS reopens the event channel on the next page load.
+        eventChannelCallbackContext = null;
+        super.onReset();
     }
 
     @Override
@@ -88,7 +95,59 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         Log.e(TAG, "onSecurityException triggered  ");
         if (errorDetails != null) {
             JSONObject errorObject = new JSONObject(errorDetails);
-            webView.sendJavascript("javascript:webengage.jwtManager.onCallbackReceived('expired',  " + errorObject + ");");
+            sendJwtEvent("expired", errorObject);
+        }
+    }
+
+    /** Delivers push/in-app/JWT events to JS over the channel opened by "registerEventChannel". */
+    private void dispatchEvent(JSONObject payload) {
+        if (eventChannelCallbackContext == null) {
+            Logger.d(TAG, "Dropping event, no JS event channel registered yet: " + payload);
+            return;
+        }
+        PluginResult result = new PluginResult(PluginResult.Status.OK, payload);
+        result.setKeepCallback(true);
+        eventChannelCallbackContext.sendPluginResult(result);
+    }
+
+    private void sendPushEvent(String type, String uri, JSONObject data) {
+        try {
+            JSONObject payload = new JSONObject();
+            payload.put("channel", "push");
+            payload.put("type", type);
+            // org.json drops null values; keep the 1.3.2 shape ("null" string for uri, JSON null for data).
+            payload.put("uri", uri == null ? "null" : uri);
+            payload.put("data", data == null ? JSONObject.NULL : data);
+            dispatchEvent(payload);
+        } catch (JSONException e) {
+            Logger.e(TAG, "Failed to build push event payload: " + e.getMessage());
+        }
+    }
+
+    private void sendNotificationEvent(String type, JSONObject data, String actionId) {
+        try {
+            JSONObject payload = new JSONObject();
+            payload.put("channel", "notification");
+            payload.put("type", type);
+            payload.put("data", data == null ? JSONObject.NULL : data);
+            if (actionId != null) {
+                payload.put("actionId", actionId);
+            }
+            dispatchEvent(payload);
+        } catch (JSONException e) {
+            Logger.e(TAG, "Failed to build notification event payload: " + e.getMessage());
+        }
+    }
+
+    private void sendJwtEvent(String type, JSONObject data) {
+        try {
+            JSONObject payload = new JSONObject();
+            payload.put("channel", "jwtManager");
+            payload.put("type", type);
+            payload.put("data", data);
+            dispatchEvent(payload);
+        } catch (JSONException e) {
+            Logger.e(TAG, "Failed to build jwtManager event payload: " + e.getMessage());
         }
     }
 
@@ -96,7 +155,11 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
         Logger.v(TAG, "Execute: " + action);
 
-        if ("engage".equals(action)) {
+        if ("registerEventChannel".equals(action)) {
+            // Internal: keeps this callback open so native can keep sending events to it.
+            // Intentionally never calls success()/error().
+            eventChannelCallbackContext = callbackContext;
+        } else if ("engage".equals(action)) {
             WebEngage.registerPushNotificationCallback(this);
             WebEngage.registerInAppNotificationCallback(this);
             WebEngage.registerWESecurityCallback(this);
@@ -179,7 +242,7 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
             callbackContext.success();
             if (IS_PUSH_CALLBACK_PENDING) {
                 IS_PUSH_CALLBACK_PENDING = false;
-                webView.sendJavascript("javascript:webengage.push.onCallbackReceived( 'click', '" + PENDING_PUSH_URI + "'," + PENDING_PUSH_CUSTOM_DATA + ");");
+                sendPushEvent("click", PENDING_PUSH_URI, PENDING_PUSH_CUSTOM_DATA);
                 PENDING_PUSH_CUSTOM_DATA = null;
                 PENDING_PUSH_URI = null;
             }
@@ -187,15 +250,18 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
             if (args.length() == 2 && !args.isNull(0)) {
                 pushOptions.put(args.getString(0), args.get(1));
             }
+            callbackContext.success();
         } else if ("inappOptions".equals(action)) {
             if (args.length() == 2 && !args.isNull(0)) {
                 inappOptions.put(args.getString(0), args.get(1));
             }
+            callbackContext.success();
         } else if ("globalOptions".equals(action)) {
             Logger.v(TAG, args.getString(0) + " " + args.getString(1));
             if (args.length() == 2 && !args.isNull(0)) {
                 globalOptions.put(args.getString(0), args.get(1));
             }
+            callbackContext.success();
         } else if ("track".equals(action)) {
             if (args.length() > 0 && !args.isNull(0)) {
                 String eventName = null;
@@ -217,6 +283,7 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                     }
                 }
             }
+            callbackContext.success();
         } else if ("setAttribute".equals(action)) {
             JSONObject customAttr = new JSONObject();
             UserProfile.Builder userProfileBuilder = new UserProfile.Builder();
@@ -248,6 +315,7 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                 WebEngage.get().user().setAttributes(filteredCustomAttributes);
             }
             WebEngage.get().user().setUserProfile(userProfileBuilder.build());
+            callbackContext.success();
         } else if ("screenNavigated".equals(action)) {
             if (args.length() > 0) {
                 String screenName = null;
@@ -272,15 +340,16 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                     }
                 }
             }
+            callbackContext.success();
         } else if("sendFcmToken".equals(action)){
             if (args.length() > 0 && !args.isNull(0)) {
                 String fcmToken = null;
                 fcmToken = args.getString(0);
-                Logger.d(TAG, fcmToken + " " + fcmToken);
                 if (fcmToken != null) {
                     WebEngage.get().setRegistrationID(fcmToken);
                 }
             }
+            callbackContext.success();
         } else if("onMessageReceived".equals(action)) {
             if (args != null && args.length() > 0 && !args.isNull(0)) {
                 try {
@@ -299,9 +368,12 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                     } else {
                         Log.d(TAG, "WebEngage: Invalid payload passed to WebEngage");
                     }
+                    callbackContext.success();
                 } catch (JSONException e) {
                     callbackContext.error("JSON parsing error: " + e.getMessage());
                 }
+            } else {
+                callbackContext.success();
             }
         } else if ("login".equals(action)) {
             if (args.length() == 1 && args.get(0) instanceof String) {
@@ -311,16 +383,20 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
             } else if (args.length() == 2 && args.get(0) instanceof String && args.get(1) instanceof String) {
                 WebEngage.get().user().login(args.getString(0), args.getString(1));
             }
+            callbackContext.success();
         } else if("setSecureToken".equals(action)) {
             if (args.length() == 2 && args.get(0) instanceof String && args.get(1) instanceof String) {
                 WebEngage.get().setSecurityToken(args.getString(0), args.getString(1));
             }
+            callbackContext.success();
         } else if ("logout".equals(action)) {
             WebEngage.get().user().logout();
+            callbackContext.success();
         } else if ("setDevicePushOptIn".equals(action)) {
             if (args.length() == 1 && args.get(0) instanceof Boolean) {
                 WebEngage.get().user().setDevicePushOptIn(args.getBoolean(0));
             }
+            callbackContext.success();
         } else if ("setUserOptIn".equals(action)) {
             if (args.length() == 2 && args.get(0) instanceof String && args.get(1) instanceof Boolean) {
                 String channel = args.getString(0);
@@ -340,8 +416,9 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                 }
                 else {
                     Logger.e("WebEngagePlugin", "Invalid channel: " + channel + ". Must be one of [push, sms, email, in_app, whatsapp, viber].");
-                }            
+                }
             }
+            callbackContext.success();
         } else if("setLocation".equals(action)) {
             Logger.d("WebEngagePlugin", "setLocation: triggered");
             if (args.length() == 2) {
@@ -350,16 +427,24 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                     double longitude = Double.parseDouble(args.getString(1));
                     Logger.d("WebEngagePlugin", "setLocation: valid arguments");
                     WebEngage.get().user().setLocation(latitude, longitude);
+                    callbackContext.success();
                 } catch (NumberFormatException e) {
                     Logger.d("WebEngagePlugin", "setLocation: invalid arguments, unable to parse to Double");
+                    callbackContext.error("setLocation: invalid arguments, unable to parse to Double");
                 }
             } else {
                 Logger.d("WebEngagePlugin", "setLocation: invalid number of arguments");
+                callbackContext.error("setLocation: invalid number of arguments");
             }
         }
 
         else if("startGAIDTracking".equals(action)){
             WebEngage.get().startGAIDTracking();
+            callbackContext.success();
+        } else {
+            // Returning false makes Cordova answer the JS callback with INVALID_ACTION.
+            Logger.e(TAG, "Unknown action: " + action);
+            return false;
         }
 
         return true;
@@ -451,9 +536,6 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
 
     @Override
     public void onPushNotificationShown(Context context, PushNotificationData notificationData) {
-//         String uri = notificationData.getPrimeCallToAction().getAction();
-//         JSONObject customData = bundleToJson(notificationData.getCustomData());
-//         webView.sendJavascript("javascript:webengage.push.onCallbackReceived( 'shown', '" + uri + "'," + customData + ");");
     }
 
     @Override
@@ -466,7 +548,7 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
             e.printStackTrace();
             Logger.e(TAG, "Exception while merging JSON");
         }
-        webView.sendJavascript("javascript:webengage.push.onCallbackReceived( 'click', '" + uri + "'," + customData + ");");
+        sendPushEvent("click", uri, customData);
         return false;
     }
 
@@ -480,7 +562,7 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
             e.printStackTrace();
             Logger.e(TAG, "Exception while merging JSON");
         }
-        webView.sendJavascript("javascript:webengage.push.onCallbackReceived( 'click', '" + uri + "'," + customData + ");");
+        sendPushEvent("click", uri, customData);
         return false;
     }
 
@@ -494,23 +576,24 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         if (inappOptions.get(INAPP_SHOULD_RENDER) != null) {
             notificationData.setShouldRender((Boolean) inappOptions.get(INAPP_SHOULD_RENDER));
         }
-        webView.sendJavascript("javascript:webengage.notification.onCallbackReceived( 'prepared', " + notificationData.getData() + ");");
+        sendNotificationEvent("prepared", notificationData.getData(), null);
         return notificationData;
     }
 
     @Override
     public void onInAppNotificationShown(Context context, InAppNotificationData notificationData) {
-        webView.sendJavascript("javascript:webengage.notification.onCallbackReceived( 'shown', " + notificationData.getData() + ");");
+        sendNotificationEvent("shown", notificationData.getData(), null);
     }
 
     @Override
     public void onInAppNotificationDismissed(Context context, InAppNotificationData notificationData) {
-        webView.sendJavascript("javascript:webengage.notification.onCallbackReceived( 'dismiss', " + notificationData.getData() + ");");
+        sendNotificationEvent("dismiss", notificationData.getData(), null);
     }
 
     @Override
     public boolean onInAppNotificationClicked(Context context, InAppNotificationData notificationData, String actionId) {
-        webView.sendJavascript("javascript:webengage.notification.onCallbackReceived( 'click', " + notificationData.getData() + ",'" + actionId + "');");
+        // Keep the 1.3.2 value: the string "null" when the SDK passes no action id.
+        sendNotificationEvent("click", notificationData.getData(), actionId == null ? "null" : actionId);
         return false;
     }
 
@@ -572,6 +655,12 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     }
 
     private static JSONObject mergeJson(JSONObject jsonObject1, JSONObject jsonObject2) throws JSONException {
+        if (jsonObject1 == null) {
+            jsonObject1 = new JSONObject();
+        }
+        if (jsonObject2 == null) {
+            return jsonObject1;
+        }
         for (Iterator<String> it = jsonObject2.keys(); it.hasNext(); ) {
             String key = it.next();
             jsonObject1.put(key, jsonObject2.get(key));

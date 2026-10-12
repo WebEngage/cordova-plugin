@@ -1,3 +1,9 @@
 node_modules
 
 package-lock.json
+
+.build/
+.swiftpm/
+Package.resolved
+.DS_Store
+DEVELOPER_NOTES.md

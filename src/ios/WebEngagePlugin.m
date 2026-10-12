@@ -2,6 +2,7 @@
 
 #import <Cordova/CDV.h>
 #import "WebEngagePlugin.h"
+#import "WEGJSString.h"
 #import <WebKit/WebKit.h>
 
 #define WE_FIRST_NAME @"we_first_name"
@@ -19,7 +20,7 @@
 #define IN_APP @"in_app"
 #define WHATSAPP @"whatsapp"
 #define VIBER @"viber"
-#define WEGPluginVersion @"1.3.2"
+#define WEGPluginVersion @"2.0.0"
 
 @interface WebEngagePlugin()
 
@@ -64,10 +65,10 @@ static WebEngagePlugin *webEngagePlugin;
 }
 
 - (void)handlePushNotificationPendingDeepLinks {
-    
-    AppDelegate* appDelegate = [AppDelegate sharedInstance];
-    
-    @synchronized (appDelegate) {
+
+    WEGAppDelegateHelper* appDelegateHelper = [WEGAppDelegateHelper sharedInstance];
+
+    @synchronized (appDelegateHelper) {
         
         if (self.pendingDeepLinkCallback && self.pendingDeepLinkCallback[@"deepLink"]) {
             
@@ -84,31 +85,31 @@ static WebEngagePlugin *webEngagePlugin;
                         NSData* data = [NSJSONSerialization dataWithJSONObject:pushData options:0 error:nil];
                         NSString* pushDataJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
                         
-                        NSString* string = [NSString stringWithFormat:@"webengage.push.onCallbackReceived('click', '%@', %@)", deeplink, pushData? pushDataJSON: @"null"];
+                        NSString* string = [NSString stringWithFormat:@"webengage.push.onCallbackReceived('click', %@, %@)", WEGJSStringLiteral(deeplink), pushData? pushDataJSON: @"null"];
                         
                         [self.commandDelegate evalJs:string];
                         
                     } else {
-                        
+
                         NSURL* url = [NSURL URLWithString:deeplink];
                         if (url) {
-                            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-                                [[UIApplication sharedApplication] openURL:url];
+                            dispatch_async(dispatch_get_main_queue(), ^{
+                                [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
                             });
                         }
-                    
+
                     }
                 }];
             }
             self.pendingDeepLinkCallback = nil;
         }
-        
-        if ([appDelegate isFreshLaunch]) {
-            [appDelegate setFreshLaunch:NO];
+
+        if (appDelegateHelper.freshLaunch) {
+            appDelegateHelper.freshLaunch = NO;
         }
-        
+
     }
-    
+
 }
 
 -(id) modifyObject: (id) obj modification: (id (^)(id val))modificationHandler {
@@ -156,63 +157,10 @@ static WebEngagePlugin *webEngagePlugin;
 }
 
 - (void)engage:(CDVInvokedUrlCommand *)command {
-    // TODO: Uncomment this when iOS SDK supports dynamic configuration.
-    /*if (command.arguments && command.arguments.count > 0 && [[command.arguments objectAtIndex:0] isKindOfClass:[NSDictionary class]] && [[command.arguments objectAtIndex:0] objectForKey:@"licenseCode"]) {
-        id config = [command.arguments objectAtIndex:0];
-
-        NSString *licenseCode = [config objectForKey:@"licenseCode"];
-
-        BOOL debug = false;
-        if ([config objectForKey:@"debug"]) {
-            debug = [config objectForKey:@"debug"];
-        }
-
-        BOOL apnsAutoRegister = true;
-        id iosConfig = [config objectForKey:@"ios"];
-        if (iosConfig && [iosConfig isKindOfClass:[NSDictionary class]]) {
-            if ([iosConfig objectForKey:@"apnsAutoRegister"]) {
-                apnsAutoRegister = [iosConfig objectForKey:@"apnsAutoRegister"];
-            }
-        }
-
-        NSDictionary *settings = @{@"licenseCode": licenseCode};
-        NSDictionary *launchOptions = @{};
-
-        BOOL success = [[WebEngage sharedInstance] application:[UIApplication sharedApplication] didFinishLaunchingWithOptions: @{
-                @"WebEngage": settings,
-                @"launchOptions": launchOptions
-            }
-            notificationDelegate:nil
-            autoRegister:apnsAutoRegister];
-
-        if (success) {
-            NSLog(@"WebEngage successfully initialized with config");
-        } else {
-            NSLog(@"WebEngage initialization with config failed");
-        }
-    } else {
-        WebEngagePlugin *webEngagePlugin = [WebEngagePlugin webEngagePlugin];
-        
-        id apnsRegistration = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"WEGApnsAutoRegister"];
-        
-        BOOL autoRegister = YES;
-        if (apnsRegistration != nil) {
-            autoRegister = [apnsRegistration boolValue];
-        }
-
-        BOOL success = [[WebEngage sharedInstance] application:[UIApplication sharedApplication]
-                  didFinishLaunchingWithOptions:@{}
-                           notificationDelegate:webEngagePlugin
-                                   autoRegister:autoRegister];
-
-        if (success) {
-            NSLog(@"WebEngage successfully initialized");
-        } else {
-            NSLog(@"WebEngage initialization failed");
-        }
-    }*/
+    // iOS has no dynamic configuration: WEGAppDelegateHelper starts the SDK from the Info.plist keys.
 
     [self handlePushNotificationPendingDeepLinks];
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
 }
 
 - (void)track:(CDVInvokedUrlCommand *)command {
@@ -267,8 +215,8 @@ static WebEngagePlugin *webEngagePlugin;
 - (void)login:(CDVInvokedUrlCommand *)command {
     CDVPluginResult* pluginResult = nil;
     NSString* userId = command.arguments && command.arguments.count>0 ? [command.arguments objectAtIndex:0] : nil;
-    NSString* jwtToken = command.arguments && command.arguments.count>0 ? [command.arguments objectAtIndex:1] : nil;
-    
+    NSString* jwtToken = command.arguments && command.arguments.count>1 ? [command.arguments objectAtIndex:1] : nil;
+
     if ((userId != nil && userId != (id)[NSNull null] && userId.length > 0) && (jwtToken != nil && jwtToken != (id)[NSNull null] && jwtToken.length > 0)) {
         [[WebEngage sharedInstance].user login:userId jwtToken:jwtToken];
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
@@ -286,7 +234,7 @@ static WebEngagePlugin *webEngagePlugin;
 - (void)setSecureToken:(CDVInvokedUrlCommand *)command{
      CDVPluginResult* pluginResult = nil;
     NSString* userId = command.arguments && command.arguments.count>0 ? [command.arguments objectAtIndex:0] : nil;
-    NSString* jwtToken = command.arguments && command.arguments.count>0 ? [command.arguments objectAtIndex:1] : nil;
+    NSString* jwtToken = command.arguments && command.arguments.count>1 ? [command.arguments objectAtIndex:1] : nil;
 
     if ((userId != nil && userId != (id)[NSNull null] && userId.length > 0) && (jwtToken != nil && jwtToken != (id)[NSNull null] && jwtToken.length > 0)) {
         [[WebEngage sharedInstance].user setSecureToken:userId jwtToken:jwtToken];
@@ -299,6 +247,7 @@ static WebEngagePlugin *webEngagePlugin;
 }
 
 - (void)setLocation:(CDVInvokedUrlCommand *)command {
+    CDVPluginResult* pluginResult = nil;
     if ([command.arguments count] == 2) {
         id latitude = [command.arguments objectAtIndex:0];
         id longitude = [command.arguments objectAtIndex:1];
@@ -316,18 +265,25 @@ static WebEngagePlugin *webEngagePlugin;
 
             if (!latNumber || !lonNumber) {
                 NSLog(@"WebEngagePlugin: setLocation invalid number format");
-                return;
+                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"setLocation: invalid number format"];
             }
         } else if ([latitude isKindOfClass:[NSNumber class]] && [longitude isKindOfClass:[NSNumber class]]) {
-            
+
             latNumber = (NSNumber *)latitude;
             lonNumber = (NSNumber *)longitude;
         } else {
             NSLog(@"WebEngagePlugin: setLocation invalid arguments");
-            return;
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"setLocation: invalid arguments"];
         }
-        [[WebEngage sharedInstance].user setUserLocationWithLatitude:latNumber andLongitude:lonNumber];
+
+        if (pluginResult == nil) {
+            [[WebEngage sharedInstance].user setUserLocationWithLatitude:latNumber andLongitude:lonNumber];
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        }
+    } else {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"setLocation: invalid number of arguments"];
     }
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
 
@@ -337,6 +293,31 @@ static WebEngagePlugin *webEngagePlugin;
     [[WebEngage sharedInstance].user loggedOut];
     pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
+
+// Android-only actions: acknowledge the call so callers (and promise wrappers) do not wait forever.
+- (void)pushOptions:(CDVInvokedUrlCommand *)command {
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
+}
+
+- (void)inappOptions:(CDVInvokedUrlCommand *)command {
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
+}
+
+- (void)globalOptions:(CDVInvokedUrlCommand *)command {
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
+}
+
+- (void)setDevicePushOptIn:(CDVInvokedUrlCommand *)command {
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
+}
+
+- (void)sendFcmToken:(CDVInvokedUrlCommand *)command {
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
+}
+
+- (void)onMessageReceived:(CDVInvokedUrlCommand *)command {
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
 }
 
 - (void)setAttribute:(CDVInvokedUrlCommand *)command {
@@ -426,34 +407,7 @@ static WebEngagePlugin *webEngagePlugin;
     [self.commandDelegate evalJs:
          [NSString stringWithFormat:
           @"webengage.notification.onCallbackReceived( 'prepared', %@)", inAppJSON]];
-    // TODO : Commedted due to
-    // Decided only to give callback for prepared
-    /*
-        NSString* resultData = [WebEngagePlugin evaluateJavaScript:[NSString stringWithFormat:
-                                                                    @"JSON.stringify(webengage.notification.onCallbackReceived( 'prepared', %@))",
-                                                                    inAppJSON] onWebView:self.webView];
-
-
-        NSMutableDictionary* modifiedData = nil;
-        if (resultData) {
-            NSData *data = [resultData dataUsingEncoding:NSUTF8StringEncoding];
-            if (data) {
-                NSMutableDictionary *modifiedData =
-                [NSJSONSerialization JSONObjectWithData:data
-                                                options:NSJSONReadingMutableContainers
-                                                  error:nil];
-
-                if ([modifiedData[@"stopRendering"] boolValue]) {
-                    *stopRendering = YES;
-                }
-            }
-        }
-
-        if (!modifiedData) {
-            modifiedData = inAppNotificationData;
-        }
-        return modifiedData;
-    */
+    // iOS only notifies JS here; it cannot change or stop the in-app.
     return inAppNotificationData;
 }
 
@@ -483,8 +437,8 @@ static WebEngagePlugin *webEngagePlugin;
     
     [self.commandDelegate evalJs:
      [NSString stringWithFormat:
-      @"webengage.notification.onCallbackReceived( 'click', %@, '%@')",
-      inAppJSON, actionId]];
+      @"webengage.notification.onCallbackReceived( 'click', %@, %@)",
+      inAppJSON, WEGJSStringLiteral(actionId)]];
 }
 
 + (NSString *)evaluateJavaScript:(NSString *)script onWebView:(UIView *)webView {
@@ -517,7 +471,7 @@ static WebEngagePlugin *webEngagePlugin;
 
 - (void)setUserOptIn:(CDVInvokedUrlCommand *)command {
     CDVPluginResult* pluginResult = nil;
-    BOOL status = nil;
+    BOOL status = NO;
     
     NSString* ch = command.arguments && command.arguments.count > 0 ? [command.arguments objectAtIndex:0] : nil;
     if (command.arguments && command.arguments.count > 1) {
@@ -528,7 +482,7 @@ static WebEngagePlugin *webEngagePlugin;
         ch = [ch lowercaseString]; // Convert ch to lowercase
     }
     
-    if (status == nil && ch == nil) {
+    if (!status && ch == nil) {
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
     } else {
         if ([ch isEqualToString:[PUSH lowercaseString]]) {
@@ -557,8 +511,8 @@ static WebEngagePlugin *webEngagePlugin;
 }
 
 -(void)presentInAppController:(CDVInvokedUrlCommand *)command{
-    AppDelegate* appDelegate = [AppDelegate sharedInstance];
-    [appDelegate presentInAppController];
+    [[WEGAppDelegateHelper sharedInstance] presentInAppController];
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
 }
 
 

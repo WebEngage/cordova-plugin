@@ -1,7 +1,30 @@
 # WebEngage Plugin for Cordova/Phonegap
 
 
-The Cordova SDK was tested on Cordova v8.0.0 for Cordova android ^7.0.0 and Cordova iOS ^4.5.5. Read the complete documentation at [WebEngage Cordova/PhoneGap Plugin Documentation](http://docs.webengage.com/docs/cordova-integration)
+Read the complete documentation at [WebEngage Cordova/PhoneGap Plugin Documentation](http://docs.webengage.com/docs/cordova-integration)
+
+
+## Supported versions
+
+| Host | Floor | Ceiling |
+|---|---|---|
+| Capacitor | 6.x | 9.x |
+| cordova-android | 12.x | 15.1.0 |
+| cordova-ios | 7.x (CocoaPods only) | 8.1.1 (CocoaPods or SPM) |
+
+- Version 2.0.0 raised the Cordova floor to cordova-android 12 / cordova-ios 7. Apps on older hosts should stay on 1.3.2 (pin it exactly).
+- The Android native SDK is `com.webengage:android-sdk:5.+` (always the newest 5.x).
+- iOS native SDK: CocoaPods `WebEngage` `>= 6.16.6`; SPM package `webengage-ios-sdk` from 2.0.0 (SDK core 7.x), linking both
+  `WebEngageCore` and `WebEngageLocation` so CocoaPods and SPM builds have the same capabilities.
+- iOS SPM support requires cordova-ios >= 8.0.0. Under Capacitor, SPM apps use this plugin's own `Package.swift`
+  (checked against the Capacitor CLI sources of 8.5.2 and 9.0.0-alpha.7). If SPM does not work for your Capacitor version, add the iOS
+  platform with `npx cap add ios --packagemanager cocoapods`.
+- Deployment target: this plugin's `Package.swift` targets iOS 13 (the WebEngage SPM package also requires iOS 13). The CocoaPods pod for SDK 7.0.4 declares iOS 10.
+- cordova-ios 7.x with a current Xcode can fail with `SWIFT_VERSION '' is unsupported`, because the
+  WebEngage iOS SDK is Swift and the app target's Swift version is left empty. Fix it by adding
+  `<preference name="SwiftVersion" value="5.0" />` inside `<platform name="ios">` in `config.xml`.
+- CocoaPods trunk is scheduled to become read-only on 2026-12-02; new integrations should prefer
+  SPM where the host supports it.
 
 
 ## Installation
@@ -32,7 +55,7 @@ Add the following details in your `config.xml` file.
         <config-file parent="WEGLicenseCode" target="*-Info.plist">
             <string>YOUR-LICENSE-CODE</string>
         </config-file>
-    <.platform>
+    </platform>
 
 </widget>
 ```
@@ -42,7 +65,9 @@ Add the following details in your `config.xml` file.
 
 ## Initialization
 
-Initialize WebEngage SDK in your `wwww/js/index.js` file.
+Initialize WebEngage SDK in your `wwww/js/index.js` file. Call `webengage.engage()` **once, at app launch**. Register your callbacks
+(`webengage.push.onClick`, `webengage.notification.onShown`, ...) before it. You do not need to call `engage()` again on other pages:
+push, in-app and JWT callbacks are delivered on every page that registers a handler.
 
 ```javascript
 var app = {
@@ -203,105 +228,14 @@ var app = {
 
 Done. Run and test push notifications from WebEngage dashboard on your Android app.
 
-#### GCM Integration (Deprecated)
+#### GCM (removed)
 
-Add the following in your `config.xml` file, under android platform tag.
-
-```xml
-<widget ... xmlns:android="http://schemas.android.com/apk/res/android">
-    ...
-    <platform name="android">
-        <config-file parent="/manifest/application" target="AndroidManifest.xml">
-            ...
-            <meta-data 
-                android:name="com.webengage.sdk.android.project_number" android:value="$12345678910" />
-
-            <meta-data 
-                android:name="com.webengage.sdk.android.auto_gcm_registration" 
-                android:value="true" />
-
-            <receiver 
-                android:name="com.webengage.sdk.android.WebEngagePushReceiver" android:permission="com.google.android.c2dm.permission.SEND">
-                <intent-filter>
-                    <action android:name="com.google.android.c2dm.intent.RECEIVE" />
-                    <category android:name="${applicationId}" />
-                </intent-filter>
-            </receiver>
-
-            <!-- Optional -->
-            <!-- Add only if the provided image exists -->
-            <meta-data
-                android:name="com.webengage.sdk.android.small_icon"
-                android:resource="@drawable/small_icon" />
-
-            <!-- Optional -->
-            <!-- Add only if the provided image exists -->
-            <meta-data
-                android:name="com.webengage.sdk.android.large_icon"
-                android:resource="@drawable/large_icon" />
-
-            <!-- Optional -->
-            <meta-data
-                android:name="com.webengage.sdk.android.accent_color"
-                android:value="#FF0000" />
-        </config-file>
-        <config-file parent="/manifest" target="AndroidManifest.xml">
-            ...
-            <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
-            <uses-permission android:name="${applicationId}.permission.C2D_MESSAGE" />
-            <permission android:name="${applicationId}.permission.C2D_MESSAGE" android:protectionLevel="signature" />
-        </config-file>
-    </platform>
-    ...
-</widget>
-```
-
-**Note:** Replace the value of android.project_number with your GCM/FCM Project Number (Sender ID).
-
-#### GCM to FCM Migration
-
-1. Follow the [FCM Integration steps](https://github.com/WebEngage/cordova-plugin#fcm-integration).
-
-2. Remove the following from your `config.xml` file, under android platform tag.
-
-```xml
-<widget ... xmlns:android="http://schemas.android.com/apk/res/android">
-    ...
-    <platform name="android">
-        <config-file parent="/manifest/application" target="AndroidManifest.xml">
-            ...
-
-            <!-- Remove these meta-data and receiver tags -->
-            <!--
-            <meta-data 
-                android:name="com.webengage.sdk.android.project_number" android:value="$12345678910" />
-
-            <meta-data 
-                android:name="com.webengage.sdk.android.auto_gcm_registration" 
-                android:value="true" />
-
-            <receiver 
-                android:name="com.webengage.sdk.android.WebEngagePushReceiver" android:permission="com.google.android.c2dm.permission.SEND">
-                <intent-filter>
-                    <action android:name="com.google.android.c2dm.intent.RECEIVE" />
-                    <category android:name="${applicationId}" />
-                </intent-filter>
-            </receiver>
-            -->
-        </config-file>
-        <config-file parent="/manifest" target="AndroidManifest.xml">
-            ...
-            <!-- Remove these permissions -->
-            <!--
-            <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
-            <uses-permission android:name="${applicationId}.permission.C2D_MESSAGE" />
-            <permission android:name="${applicationId}.permission.C2D_MESSAGE" android:protectionLevel="signature" />
-            -->
-        </config-file>
-    </platform>
-    ...
-</widget>
-```
+Google shut down GCM (Google Cloud Messaging) in 2019; GCM no longer delivers notifications,
+so there is no supported GCM integration path. **Use the FCM integration above.** If your app
+still has the old GCM `config.xml` entries (`com.webengage.sdk.android.project_number`,
+`com.webengage.sdk.android.auto_gcm_registration`, the `WebEngagePushReceiver` receiver, and the
+`com.google.android.c2dm.*` / `${applicationId}.permission.C2D_MESSAGE` permissions), remove them
+and follow the [FCM Integration](#fcm-integration) steps instead.
 
 ### 2. iOS Push Notification Integration
 
@@ -318,6 +252,21 @@ Enable 'Push Notifications' under capabilities tab in your XCode and then add 'W
     </platform>
 </widget>
 ```
+
+### iOS Rich Push (images, carousels, rating widgets — optional)
+
+Rich push needs two additional Xcode targets (a Notification Service Extension and a Notification
+Content Extension). No plugin tooling — this plugin's `plugin.xml`, Capacitor's CLI, or React
+Native's autolinking — can create an Xcode target automatically; across every one of our hybrid
+wrappers, that step is always done by hand in Xcode. This plugin ships the small amount that *can*
+be shared (the two extension source files and full setup steps) at
+[`templates/ios-rich-push/`](./templates/ios-rich-push/README.md).
+
+Applies identically to Cordova and Capacitor apps (same plugin, same native SDK) except for which
+`.xcworkspace` you open and one regeneration caveat — see that folder's README for both paths. The
+short version: Capacitor's `ios/App` persists across `npx cap sync`, so manually-added extension
+targets survive there; Cordova's `platforms/ios` does not survive `cordova platform remove && add`,
+so redo this setup if you ever do that.
 
 ### 3. Push Notification Callbacks
 
@@ -351,6 +300,48 @@ webengage.notification.onDismiss(function(inAppData) {
     ...
 });
 ```
+
+
+## Capacitor
+
+This plugin is a Cordova plugin, consumed by Capacitor through its Cordova-compatibility layer.
+Installation and the JS API above are identical; a few things work differently because Capacitor
+does not run Cordova's own project-configuration machinery.
+
+### Setup
+
+```
+npm install cordova-plugin-webengage
+npx cap sync
+```
+
+For iOS, `npx cap sync ios` (not a manual `pod install`) is what generates and installs this
+plugin's dependencies for both CocoaPods and SPM projects.
+
+### Capacitor does not apply these automatically
+
+Capacitor does not run Cordova hooks, and it does not read the app's `config.xml` at all - so
+everything this README's **Integration** and **Configurations** sections describe as a
+`config.xml` `<config-file>` entry must instead be added directly to the app's own native project
+files:
+
+- **Android** - add the same `<meta-data>` tags shown above directly inside
+  `android/app/src/main/AndroidManifest.xml`'s `<application>` element: the license code
+  (`com.webengage.sdk.android.key`), and any of the optional ones you use (`...debug`,
+  `...location_tracking`, `...project_number`, `...auto_gcm_registration`, `...small_icon`,
+  `...large_icon`, `...accent_color`).
+- **iOS** - add the corresponding keys directly to `ios/App/App/Info.plist`: `WEGLicenseCode`
+  (String), `WEGLogLevel` (String), `WEGApnsAutoRegister` (Boolean), and the `UIBackgroundModes`
+  array (`fetch`, `remote-notification`) this plugin normally adds via `config-file` - Capacitor
+  only prints a reminder for that last one instead of adding it.
+
+### Known limitations
+
+- Dynamic config (passing a config object to `webengage.engage(config)`) is only implemented on
+  Android; on iOS, `engage()` always reads static configuration from the native project files
+  above.
+- See **Supported versions** above for the Capacitor/SPM version range where this plugin's own
+  `Package.swift` is honored.
 
 
 ## Troubleshooting
