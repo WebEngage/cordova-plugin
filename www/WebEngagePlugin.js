@@ -1,7 +1,7 @@
 var exec = require("cordova/exec");
 var channel = require("cordova/channel");
 
-var PLUGIN_NAME = "WebEngagePlugin";
+var Constants = require("./WEConstants");
 
 function WebEngagePlugin() {
 	this.push = new WebEngagePushChannel();
@@ -43,7 +43,7 @@ var _eventChannelRegistered = false;
 // (CordovaPlugin.onReset), so the channel is also opened from onCordovaReady on every page load
 // (bottom of this file). The flag makes repeated calls on the same page a no-op.
 function _registerEventChannel(pluginInstance) {
-  if (_eventChannelRegistered || cordova.platformId !== "android") {
+  if (_eventChannelRegistered || cordova.platformId !== Constants.PLATFORM_ANDROID) {
     return;
   }
   _eventChannelRegistered = true;
@@ -52,17 +52,16 @@ function _registerEventChannel(pluginInstance) {
       if (!payload || !payload.channel) {
         return;
       }
-      if (payload.channel === "push") {
+      if (payload.channel === Constants.CHANNEL_PUSH) {
         pluginInstance.push.onCallbackReceived(payload.type, payload.uri, payload.data);
-      } else if (payload.channel === "notification") {
+      } else if (payload.channel === Constants.CHANNEL_NOTIFICATION) {
         pluginInstance.notification.onCallbackReceived(payload.type, payload.data, payload.actionId);
-      } else if (payload.channel === "jwtManager") {
+      } else if (payload.channel === Constants.CHANNEL_JWT_MANAGER) {
         pluginInstance.jwtManager.onCallbackReceived(payload.type, payload.data);
       }
     },
     null,
-    PLUGIN_NAME,
-    "registerEventChannel",
+    Constants.PLUGIN, Constants.REGISTER_EVENT_CHANNEL,
     []
   );
 }
@@ -72,9 +71,9 @@ WebEngagePlugin.prototype.engage = function () {
   var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
   var config = parsed.args[0];
   if (config) {
-    exec(parsed.success, parsed.error, PLUGIN_NAME, "engage", [config]);
+    exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.ENGAGE, [config]);
   } else {
-    exec(parsed.success, parsed.error, PLUGIN_NAME, "engage", []);
+    exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.ENGAGE, []);
   }
 };
 
@@ -83,13 +82,13 @@ WebEngagePlugin.prototype.options = function () {
   var key = parsed.args[0];
   var value = parsed.args[1];
   this._options[key] = value;
-  exec(parsed.success, parsed.error, PLUGIN_NAME, "globalOptions", [key, value]);
+  exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.GLOBAL_OPTIONS, [key, value]);
 };
 
 WebEngagePlugin.prototype.startGAIDTracking = function() {
 	var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
-	if(cordova.platformId === "android"){
-		exec(parsed.success, parsed.error, PLUGIN_NAME, "startGAIDTracking",[]);
+	if(cordova.platformId === Constants.PLATFORM_ANDROID){
+		exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.START_GAID_TRACKING,[]);
 	} else if (parsed.success) {
 		parsed.success();
 	}
@@ -101,9 +100,9 @@ WebEngagePlugin.prototype.track = function () {
   var eventName = parsed.args[0];
   var attributes = parsed.args[1];
   if (attributes === undefined) {
-    exec(parsed.success, parsed.error, PLUGIN_NAME, "track", [eventName]);
+    exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.TRACK, [eventName]);
   } else {
-    exec(parsed.success, parsed.error, PLUGIN_NAME, "track", [eventName, attributes]);
+    exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.TRACK, [eventName, attributes]);
   }
 };
 
@@ -116,19 +115,19 @@ WebEngagePlugin.prototype.screen = function () {
     (typeof screenName === "string" || screenName instanceof String)
   ) {
     if (screenData === undefined) {
-      exec(parsed.success, parsed.error, PLUGIN_NAME, "screenNavigated", [screenName]);
+      exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SCREEN_NAVIGATED, [screenName]);
     } else {
-      exec(parsed.success, parsed.error, PLUGIN_NAME, "screenNavigated", [
+      exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SCREEN_NAVIGATED, [
         screenName,
         screenData,
       ]);
     }
   } else if (screenName !== undefined && isValidJavascriptObject(screenName)) {
-    exec(parsed.success, parsed.error, PLUGIN_NAME, "screenNavigated", [null, screenName]);
+    exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SCREEN_NAVIGATED, [null, screenName]);
   } else {
-    console.error("Invalid arguments provided to screen plugin call");
+    console.error(Constants.ERROR_INVALID_SCREEN_ARGUMENTS);
     if (parsed.error) {
-      parsed.error("Invalid arguments provided to screen plugin call");
+      parsed.error(Constants.ERROR_INVALID_SCREEN_ARGUMENTS);
     }
   }
 };
@@ -144,7 +143,7 @@ WebEngagePushChannel.prototype.options = function () {
   var key = parsed.args[0];
   var value = parsed.args[1];
   this._options[key] = value;
-  exec(parsed.success, parsed.error, PLUGIN_NAME, "pushOptions", [key, value]);
+  exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.PUSH_OPTIONS, [key, value]);
 };
 
 WebEngagePushChannel.prototype.onClick = function (callback) {
@@ -158,8 +157,8 @@ WebEngagePushChannel.prototype.onClick = function (callback) {
 WebEngagePushChannel.prototype.onMessageReceived = function () {
   var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
   var payload = parsed.args[0];
-  if(cordova.platformId === "android"){
-    exec(parsed.success, parsed.error, PLUGIN_NAME, "onMessageReceived", [payload]);
+  if(cordova.platformId === Constants.PLATFORM_ANDROID){
+    exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.ON_MESSAGE_RECEIVED, [payload]);
   } else if (parsed.success) {
     parsed.success();
   }
@@ -168,8 +167,8 @@ WebEngagePushChannel.prototype.onMessageReceived = function () {
 WebEngagePushChannel.prototype.sendFcmToken = function () {
   var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
   var token = parsed.args[0];
-  if(cordova.platformId === "android"){
-    exec(parsed.success, parsed.error, PLUGIN_NAME, "sendFcmToken", [token]);
+  if(cordova.platformId === Constants.PLATFORM_ANDROID){
+    exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SEND_FCM_TOKEN, [token]);
   } else if (parsed.success) {
     parsed.success();
   }
@@ -182,14 +181,14 @@ WebEngagePushChannel.prototype.onCallbackReceived = function (
 ) {
   if (type) {
     switch (type) {
-      case "shown":
+      case Constants.EVENT_SHOWN:
         break;
-      case "click":
+      case Constants.EVENT_CLICK:
         if (typeof this.clickCallback === "function") {
           this.clickCallback(uri, customData);
         }
         break;
-      case "dismiss":
+      case Constants.EVENT_DISMISS:
         break;
     }
   }
@@ -208,7 +207,7 @@ WebEngageNotificationChannel.prototype.options = function () {
   var key = parsed.args[0];
   var value = parsed.args[1];
   this._options[key] = value;
-  exec(parsed.success, parsed.error, PLUGIN_NAME, "inappOptions", [key, value]);
+  exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.INAPP_OPTIONS, [key, value]);
 };
 
 WebEngageNotificationChannel.prototype.onShown = function (callback) {
@@ -249,16 +248,16 @@ WebEngageNotificationChannel.prototype.onCallbackReceived = function (
 ) {
   if (type) {
     switch (type) {
-      case "shown":
+      case Constants.EVENT_SHOWN:
         this.shownCallback(notificationData);
         break;
-      case "click":
+      case Constants.EVENT_CLICK:
         this.clickCallback(notificationData, actionId);
         break;
-      case "dismiss":
+      case Constants.EVENT_DISMISS:
         this.dismissCallback(notificationData);
         break;
-      case "prepared":
+      case Constants.EVENT_PREPARED:
         this.preparedCallback(notificationData);
         break;
     }
@@ -271,18 +270,18 @@ WebEngageUserChannel.prototype.login = function() {
 	var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
 	var userId = parsed.args[0];
 	var secureToken = parsed.args.length > 1 ? parsed.args[1] : null;
-	exec(parsed.success, parsed.error, PLUGIN_NAME, "login", [userId, secureToken]);
+	exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.LOGIN, [userId, secureToken]);
 };
 WebEngageUserChannel.prototype.setSecureToken = function() {
 	var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
 	var userId = parsed.args[0];
 	var jwtToken = parsed.args[1];
-	exec(parsed.success, parsed.error, PLUGIN_NAME, "setSecureToken", [userId, jwtToken]);
+	exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SET_SECURE_TOKEN, [userId, jwtToken]);
 }
 
 WebEngageUserChannel.prototype.logout = function () {
   var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
-  exec(parsed.success, parsed.error, PLUGIN_NAME, "logout", []);
+  exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.LOGOUT, []);
 };
 
 WebEngageUserChannel.prototype.setAttribute = function () {
@@ -290,9 +289,9 @@ WebEngageUserChannel.prototype.setAttribute = function () {
   var key = parsed.args[0];
   var value = parsed.args[1];
   if (value === undefined && isValidJavascriptObject(key)) {
-    exec(parsed.success, parsed.error, PLUGIN_NAME, "setAttribute", [key]);
+    exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SET_ATTRIBUTE, [key]);
   } else if (key && isValidString(key) && value !== undefined) {
-    exec(parsed.success, parsed.error, PLUGIN_NAME, "setAttribute", [key, value]);
+    exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SET_ATTRIBUTE, [key, value]);
   } else if (parsed.success) {
     parsed.success();
   }
@@ -301,8 +300,8 @@ WebEngageUserChannel.prototype.setAttribute = function () {
 WebEngageUserChannel.prototype.setDevicePushOptIn = function () {
 	var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
 	var optIn = parsed.args[0];
-	if(cordova.platformId === "android"){
-    exec(parsed.success, parsed.error, PLUGIN_NAME, "setDevicePushOptIn", [optIn]);
+	if(cordova.platformId === Constants.PLATFORM_ANDROID){
+    exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SET_DEVICE_PUSH_OPT_IN, [optIn]);
   } else if (parsed.success) {
     parsed.success();
   }
@@ -312,20 +311,20 @@ WebEngageUserChannel.prototype.setUserOptIn = function () {
   var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
   var channel = parsed.args[0];
   var optIn = parsed.args[1];
-  exec(parsed.success, parsed.error, PLUGIN_NAME, "setUserOptIn", [channel, optIn]);
+  exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SET_USER_OPT_IN, [channel, optIn]);
 };
 
 WebEngageUserChannel.prototype.setLocation = function () {
   var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
   var lat = parsed.args[0];
   var lng = parsed.args[1];
-  exec(parsed.success, parsed.error, PLUGIN_NAME, "setLocation", [lat, lng]);
+  exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SET_LOCATION, [lat, lng]);
 };
 
 WebEngageUserChannel.prototype.presentInAppController = function () {
   var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
   if (typeof cordova !== 'undefined' && cordova.platformId === 'ios') {
-    exec(parsed.success, parsed.error, PLUGIN_NAME, "presentInAppController", []);
+    exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.PRESENT_IN_APP_CONTROLLER, []);
   } else {
     console.log("presentInAppController is not supported on this platform.");
     if (parsed.success) {
@@ -347,9 +346,8 @@ WebEngageJWTManager.prototype.tokenInvalidatedCallback = function(callback) {
 };
 	
 WebEngageJWTManager.prototype.onCallbackReceived = function(type, errorMessage){
-	if (type == 'expired'){
+	if (type == Constants.EVENT_EXPIRED){
 		if(this.invalidatedCallback) {
-      console.log("Token invalidated!")
 			this.invalidatedCallback(errorMessage);
 		} else {
 			console.log("WebEngage: tokenInvalidatedCallback is not defined")

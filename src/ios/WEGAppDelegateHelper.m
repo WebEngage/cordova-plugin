@@ -1,6 +1,7 @@
 #import "WEGAppDelegateHelper.h"
 #import "WebEngagePlugin.h"
 #import "WEGJSString.h"
+#import "WEGConstants.h"
 #import <WebKit/WebKit.h>
 
 @implementation WEGAppDelegateHelper
@@ -27,10 +28,10 @@
 
     WebEngagePlugin* webEngagePlugin = [WebEngagePlugin webEngagePlugin];
 
-    id apnsRegistration = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"WEGApnsAutoRegister"];
+    id apnsRegistration = [[NSBundle mainBundle] objectForInfoDictionaryKey:WEG_INFO_PLIST_APNS_AUTO_REGISTER];
 
     BOOL autoRegister = YES;
-    if (apnsRegistration != nil) {
+    if ([apnsRegistration respondsToSelector:@selector(boolValue)]) {
         autoRegister = [apnsRegistration boolValue];
     }
     [[WebEngage sharedInstance] application:notification.object
@@ -49,18 +50,17 @@
 
             //Case where push notification is clicked from App background
             if (!self.freshLaunch) {
-                [WebEngagePlugin evaluateJavaScript:@"webengage.push.clickCallback !== undefined && webengage.push.clickCallback != null?true: false;" onWebView:webEngagePlugin.webView completionHandler:^(NSString * _Nullable response, NSError * _Nullable error) {
+                [WebEngagePlugin evaluateJavaScript:WEG_JS_PUSH_CLICK_CALLBACK_REGISTERED onWebView:webEngagePlugin.webView completionHandler:^(NSString * _Nullable response, NSError * _Nullable error) {
 
                     //This is invocation from background. Check if the callback is registered.
                     if ([response isEqualToString: @"1"]) {
 
                         //case where app is invoked from background and click callback is registered
-                        NSData* data = [NSJSONSerialization dataWithJSONObject:pushData options:0 error:nil];
-                        NSString* pushDataJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+                        NSString* pushDataJSON = [NSJSONSerialization isValidJSONObject:pushData] ? [[NSString alloc] initWithData:[NSJSONSerialization dataWithJSONObject:pushData options:0 error:nil] encoding:NSUTF8StringEncoding] : nil;
 
                         [webEngagePlugin.commandDelegate evalJs:
-                         [NSString stringWithFormat:@"webengage.push.onCallbackReceived('click', %@, %@)",
-                           WEGJSStringLiteral(deeplink), pushDataJSON]];
+                         [NSString stringWithFormat:WEG_JS_PUSH_CLICK_FORMAT,
+                           WEGJSStringLiteral(deeplink), pushDataJSON ?: @"null"]];
                     } else {
                         NSURL* url = [NSURL URLWithString:deeplink];
                         if (url) {
@@ -71,8 +71,15 @@
                     }
                 }];
             } else {
-                webEngagePlugin.pendingDeepLinkCallback = [@{@"deepLink": deeplink,
-                                                             @"info": pushData} mutableCopy];
+                // a nil deep link or payload cannot be stored in a dictionary literal (it raises)
+                NSMutableDictionary *pending = [NSMutableDictionary dictionary];
+                if (deeplink) {
+                    pending[WEG_KEY_DEEP_LINK] = deeplink;
+                }
+                if (pushData) {
+                    pending[WEG_KEY_PUSH_INFO] = pushData;
+                }
+                webEngagePlugin.pendingDeepLinkCallback = pending;
             }
 
         }

@@ -6,6 +6,7 @@
 - **Host floor raised** from cordova-android >= 4.1 / cordova-ios >= 4 to **cordova-android >= 12.0.0 / cordova-ios >= 7.0.0**
   (`plugin.xml` `<engines>`, `package.json` `engines.cordovaDependencies["2.0.0"]`). Apps on older hosts stay on 1.3.2
   (pin it exactly; a `^1.3.2` range keeps resolving to 1.x only). Released as 2.0.0 so that `^1.x` ranges never pick this up silently.
+  One verified technical reason: `android-sdk` 5.2.0 pulls `com.webengage:we-inspector`, which needs AndroidX libraries that require `compileSdk` 33 or higher. cordova-android 11 and older compile at 32 or lower, so the build fails in `checkDebugAarMetadata` (reproduced on cordova-android 11.0.0; 1.3.2 builds there). cordova-android 12.0.1 builds.
 - **cordova-ios 8 now installs this plugin through Swift Package Manager** (`<platform name="ios" package="swift">` + `Package.swift`),
   not CocoaPods. The CocoaPods pod is kept for cordova-ios 7 and for hosts that use pods (`nospm="true"`). If your app also uses
   `we-notificationinbox-cordova`, upgrade it to the matching release at the same time; an old inbox release still pulls the WebEngage pod
@@ -46,10 +47,21 @@
 - iOS: push-click URL opening runs on the main queue via `openURL:options:completionHandler:` (was a background queue with the deprecated call).
 - iOS: in-app-controller presentation uses a UIScene-safe window lookup (falls back to the pre-UIScene lookup on iOS 11/12 / cordova-ios 7).
 - `Package.swift` comments no longer contain the upstream organisation or Cordova platform repository names (see Fixed).
-- Android: the plugin Gradle script no longer prints `projectDir` on every build, and the FCM token is no longer written to the log by `sendFcmToken`.
+- Logging: removed output that was always on or noisy: the plugin Gradle script no longer prints `projectDir` on every build, the FCM token is no longer logged by `sendFcmToken`, the Android constructor/initialize/static-block messages and `printStackTrace` calls are gone, the JS "Token invalidated!" message is gone, and `hooks/clean.js` no longer dumps `android.json` to the console. Remaining plugin diagnostics go through the SDK `Logger` and show only when SDK debug logging is enabled (see `DEVELOPER_NOTES.md`). The `largeIcon` format hint no longer says `smallIcon`.
 - Packaging: the dev-only `scripts/check-version.js` is no longer shipped in the npm tarball (it still runs on `prepublishOnly`); dead commented-out code was removed.
 
 ### Fixed
+- **iOS: the app no longer terminates on wrongly typed arguments.** A `null`, number, boolean, array or object where a string is expected
+  (`track(null)`, `screen(5)`, `login(5)`, `setSecureToken(null, null)`, `setUserOptIn(null, true)`) raised an uncaught exception, and Cordova's
+  command queue does not catch it. This also affected 1.3.2 and earlier. Those calls now reply with an error and change nothing; every call that
+  worked before behaves exactly as before. Two cases changed beyond "crash becomes error": `login(id, <non-string token>)` logs in without a token,
+  as `login(id, null)` always did, and a `we_*` string attribute (`we_first_name`, `we_email`, `we_phone`, ...) set to a non-string value is
+  ignored (the SDK threw on its own queue and terminated the app). `setUserOptIn(channel, null)` replies with an error instead of opting out.
+- **iOS:** an exception raised inside any action (plugin or SDK) is logged and answered with an error instead of terminating the app; a push
+  deep link or in-app payload that is missing or not JSON no longer raises.
+- **Android:** callbacks that run on SDK threads no longer terminate the app: a non-boolean `webengage.push.options` / `webengage.notification.options` value
+  (`sound`, `vibration`, `shouldRender`) threw `ClassCastException` when a push or in-app arrived; a push without call-to-action data threw
+  `NullPointerException` on click; the event channel could be cleared between its null check and its use. Activity start/stop reporting is also guarded.
 - **Capacitor 8 / 9 SPM:** Capacitor's CLI rewrites a plugin's `Package.swift` with a string replace that only changes the *first* occurrence of the
   upstream organisation name. A comment containing it was matched instead of the dependency URL, producing a non-existent repository URL
   (`apache/capacitor-swift-pm.git` on Capacitor 8, `apache/capacitor.git` on Capacitor 9). The comments were removed.

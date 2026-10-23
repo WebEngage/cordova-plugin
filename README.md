@@ -12,7 +12,7 @@ Read the complete documentation at [WebEngage Cordova/PhoneGap Plugin Documentat
 | cordova-android | 12.x | 15.1.0 |
 | cordova-ios | 7.x (CocoaPods only) | 8.1.1 (CocoaPods or SPM) |
 
-- Version 2.0.0 raised the Cordova floor to cordova-android 12 / cordova-ios 7. Apps on older hosts should stay on 1.3.2 (pin it exactly).
+- Version 2.0.0 raised the Cordova floor to cordova-android 12 / cordova-ios 7. The Android SDK 5.2.0 pulled in by `android-sdk:5.+` needs `compileSdk` 33 or higher, which cordova-android 11 and older do not provide. Apps on older hosts should stay on 1.3.2 (pin it exactly).
 - The Android native SDK is `com.webengage:android-sdk:5.+` (always the newest 5.x).
 - iOS native SDK: CocoaPods `WebEngage` `>= 6.16.6`; SPM package `webengage-ios-sdk` from 2.0.0 (SDK core 7.x), linking both
   `WebEngageCore` and `WebEngageLocation` so CocoaPods and SPM builds have the same capabilities.

@@ -21,11 +21,9 @@ function checkValidXml2jsNode(node) {
 function cleanAndroidJson(android) {
     try {
         var androidMetaData = android['config_munge']["files"]["AndroidManifest.xml"]["parents"]["/manifest/application"];
-        console.log("android tags: " + androidMetaData.length);
         if (androidMetaData) {
             androidMetaData = androidMetaData.filter(metaData => !(metaData && metaData['xml'] && metaData['xml'].includes("\"com.webengage.sdk.android.")))
         }
-        console.log("android tags: " + androidMetaData.length);
         android['config_munge']["files"]["AndroidManifest.xml"]["parents"]["/manifest/application"] = androidMetaData;
     } catch(e) {
         console.log("Error cleaning android.json file.");
@@ -60,9 +58,8 @@ function cleanAndroid() {
                 android = cleanAndroidJson(android);
     
                 fs.writeFile(androidFilename, JSON.stringify(android, null, 2), function (err) {
-                    if (!err) {
-                        console.log(JSON.stringify(android));
-                        console.log('writing to ' + androidFilename);
+                    if (err) {
+                        console.log("Error writing " + androidFilename + ": " + err);
                     }
                 });
             }
