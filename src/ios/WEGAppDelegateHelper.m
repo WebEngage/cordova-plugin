@@ -26,17 +26,18 @@
         helper.freshLaunch = YES;
     }
 
-    WebEngagePlugin* webEngagePlugin = [WebEngagePlugin webEngagePlugin];
-
     id apnsRegistration = [[NSBundle mainBundle] objectForInfoDictionaryKey:WEG_INFO_PLIST_APNS_AUTO_REGISTER];
 
     BOOL autoRegister = YES;
     if ([apnsRegistration respondsToSelector:@selector(boolValue)]) {
         autoRegister = [apnsRegistration boolValue];
     }
+    // Pass the always-present helper as the in-app delegate: on UIScene hosts (cordova-ios 8, Capacitor 8+)
+    // the plugin is created after launch, so [WebEngagePlugin webEngagePlugin] is nil here. The helper
+    // forwards each callback to the plugin once it exists (see WEGInAppNotificationProtocol methods below).
     [[WebEngage sharedInstance] application:notification.object
               didFinishLaunchingWithOptions:notification.userInfo
-                       notificationDelegate:webEngagePlugin
+                       notificationDelegate:helper
                                autoRegister:autoRegister];
 
     [[WebEngage sharedInstance] setPushNotificationDelegate:helper];
@@ -137,6 +138,26 @@
     }
 
     return rootViewController;
+}
+
+- (NSMutableDictionary *)notificationPrepared:(NSMutableDictionary *)inAppNotificationData
+                                  shouldStop:(BOOL *)stopRendering {
+    WebEngagePlugin *plugin = [WebEngagePlugin webEngagePlugin];
+    return plugin ? [plugin notificationPrepared:inAppNotificationData shouldStop:stopRendering]
+                  : inAppNotificationData;
+}
+
+- (void)notificationShown:(NSMutableDictionary *)inAppNotificationData {
+    [[WebEngagePlugin webEngagePlugin] notificationShown:inAppNotificationData];
+}
+
+- (void)notificationDismissed:(NSMutableDictionary *)inAppNotificationData {
+    [[WebEngagePlugin webEngagePlugin] notificationDismissed:inAppNotificationData];
+}
+
+- (void)notification:(NSMutableDictionary *)inAppNotificationData
+  clickedWithAction:(NSString *)actionId {
+    [[WebEngagePlugin webEngagePlugin] notification:inAppNotificationData clickedWithAction:actionId];
 }
 
 @end

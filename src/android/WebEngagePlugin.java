@@ -274,14 +274,14 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                         String key = iterator.next();
                         try {
                             Object value = attributes.get(key);
-                            filterSystemAndCustomAttributes(key, value, customAttr, userProfileBuilder);
+                            applyAttribute(key, value, customAttr, userProfileBuilder);
                         } catch (JSONException e) {
 
                         }
                     }
                 }
             } else if (args.length() == 2 && !args.isNull(0)) {
-                filterSystemAndCustomAttributes(args.getString(0), args.get(1), customAttr, userProfileBuilder);
+                applyAttribute(args.getString(0), args.get(1), customAttr, userProfileBuilder);
             }
             Map<String, Object> filteredCustomAttributes = null;
             try {
@@ -424,6 +424,15 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         }
 
         return true;
+    }
+
+    // The SDK decides which attributes it accepts. If it (or a cast) throws for one attribute, skip only that one.
+    private void applyAttribute(String key, Object value, JSONObject customAttr, UserProfile.Builder userProfileBuilder) {
+        try {
+            filterSystemAndCustomAttributes(key, value, customAttr, userProfileBuilder);
+        } catch (RuntimeException e) {
+            Logger.e(TAG, "setAttribute skipped '" + key + "': " + e.getClass().getSimpleName());
+        }
     }
 
     private void filterSystemAndCustomAttributes(String key, Object value, JSONObject customAttr, UserProfile.Builder userProfileBuilder) {

@@ -18,6 +18,8 @@
   relied on that now only gets `onDismiss`.
 - **Plugin methods accept optional trailing success/error callbacks.** A function passed as the last argument to a plugin method is now treated
   as a callback (this is how promise wrappers such as `@awesome-cordova-plugins` settle). Calls that never passed one are unaffected.
+  One visible consequence: `user.setAttribute({ ... }, successFn)` (object form with a trailing function) used to send nothing, because the function
+  landed in the value slot; it now applies the attributes.
 - **iOS:** the internal `AppDelegate (WebEngagePlugin)` category files were replaced by a plain `WEGAppDelegateHelper` class (see Changed).
   After upgrading in place, confirm no `AppDelegate+WebEngagePlugin.*` files remain in the iOS project.
 
@@ -56,9 +58,10 @@
   command queue does not catch it. This also affected 1.3.2 and earlier. Those calls now reply with an error and change nothing; every call that
   worked before behaves exactly as before. Two cases changed beyond "crash becomes error": `login(id, <non-string token>)` logs in without a token,
   as `login(id, null)` always did, and a `we_*` string attribute (`we_first_name`, `we_email`, `we_phone`, ...) set to a non-string value is
-  ignored (the SDK threw on its own queue and terminated the app). `setUserOptIn(channel, null)` replies with an error instead of opting out.
+  ignored (the SDK threw on its own queue and terminated the app). `setUserOptIn(channel, null)` replies with an error instead of crashing (in 1.3.2 it crashed with `-[NSNull boolValue]: unrecognized selector` — it did not opt the user out).
 - **iOS:** an exception raised inside any action (plugin or SDK) is logged and answered with an error instead of terminating the app; a push
   deep link or in-app payload that is missing or not JSON no longer raises.
+- **Android:** `setAttribute` skips one attribute that the SDK cannot apply (for example an unknown `we_gender`, or a non-string `we_hashed_email`) instead of failing the whole call. It logs the skipped name through the SDK `Logger`, applies the other attributes in the call and replies success. The plugin does not validate system attributes itself; the native SDK decides which ones it accepts. In 1.3.2 such a call threw before it applied anything.
 - **Android:** callbacks that run on SDK threads no longer terminate the app: a non-boolean `webengage.push.options` / `webengage.notification.options` value
   (`sound`, `vibration`, `shouldRender`) threw `ClassCastException` when a push or in-app arrived; a push without call-to-action data threw
   `NullPointerException` on click; the event channel could be cleared between its null check and its use. Activity start/stop reporting is also guarded.
@@ -88,49 +91,24 @@
 
 ### Documented, not implemented
 - iOS `engage(config)` ignores its `config` argument (dynamic configuration is Android-only); this predates 2.0.0.
+- Android `login(id, token)` ignores a token that is not a string and still replies success (iOS logs in without the token); unchanged from 1.3.2.
 - A Core-only iOS variant without the Location module (RN uses `WEBENGAGE_USE_CORE`) is not offered; `plugin.xml` cannot read environment variables.
+
+### Upgrading from 1.3.x
+Bump `package.json` and run `npm install` does **not** update the native plugin code. You must remove and
+re-add the plugin:
+```sh
+cordova plugin rm cordova-plugin-webengage
+cordova plugin add cordova-plugin-webengage@2.0.0
+```
+Verify that `platforms/ios/.../Plugins/cordova-plugin-webengage/` contains `WEGAppDelegateHelper.*` and **no**
+`AppDelegate+WebEngagePlugin.*` after the re-add.
 
 ### Unverified / needs device or simulator testing
 - Real `cap sync` + `xcodebuild` on Capacitor 8 and 9 SPM apps with this `Package.swift` (the CLI rewrite itself was verified against the installed
   CLI sources of 8.5.2 and 9.0.0-alpha.7; other 8.x versions were not checked).
 - Android events after a page navigation, and a cold-start push click, on a real device (Cordova and Capacitor).
 - Upgrade in place from 1.3.2 (stale iOS files, `Podfile.lock`), and the mixed-version case (new core with old inbox) for duplicate SDK copies.
-- Runtime behavior on a UIScene + SPM host: SDK init path, in-app presentation, push click, location on SPM.
+- iOS in-app callbacks (`onPrepared/onShown/onClick/onDismiss`) on UIScene hosts (cordova-ios 8 / Capacitor 8+):
+  delegate wiring and simulator delivery verified; a real device run with a live in-app campaign is still pending.
 
-### Manual test checklist — `AppDelegate` category → `WEGAppDelegateHelper` (I2)
-Covers the risk that a plugin update leaves stale generated files behind, and that
-`WEGAppDelegateHelper`'s behavior (push-click routing, in-app presentation) matches the old
-category on a real device/simulator, for both install paths:
-
-**Plain Cordova app (no Capacitor)**
-- [ ] Fresh install (`cordova platform add ios` on 1.4.0 from clean): confirm
-      `platforms/ios/<App>/Plugins/cordova-plugin-webengage/` contains `WEGAppDelegateHelper.h/.m`
-      and does **not** contain `AppDelegate+WebEngagePlugin.h/.m`.
-- [ ] Upgrade path: start from an app already on the old plugin version (old category files
-      present under `platforms/ios/.../Plugins/...`), then `cordova plugin rm
-      cordova-plugin-webengage && cordova plugin add cordova-plugin-webengage`. Confirm the old
-      `AppDelegate+WebEngagePlugin.h/.m` are actually removed from the generated Xcode project,
-      not just left alongside the new files (Cordova's plugin-file removal on update has
-      historically been unreliable).
-- [ ] Push tapped from killed state (cold start): click callback fires with correct `uri`/data.
-- [ ] Push tapped from background: same.
-- [ ] Push arrives and is tapped while app is foregrounded: same.
-- [ ] `presentInAppController` (iOS in-app message) re-parents the webview correctly.
-- [ ] Build succeeds via CocoaPods (`pod install`, cordova-ios 7.x or `nospm` path on 8.x).
-- [ ] Build succeeds via SPM (cordova-ios >= 8.0.0, `Package.swift` path) — this is the
-      scenario the category could never build under.
-
-**Capacitor app**
-- [ ] Fresh `npx cap add ios` on an app already depending on plugin 1.4.0: same file-presence
-      check as above, inside the Capacitor-generated iOS project.
-- [ ] Upgrade path: app previously synced with the old plugin version, then bump the npm
-      dependency and run `npx cap sync ios` (or `npx cap update ios`). Confirm old category files
-      are gone from the Capacitor iOS project, not just the new ones added.
-- [ ] Repeat the three push-tap scenarios (killed / background / foreground) and
-      `presentInAppController` above, once with `npx cap add ios --packagemanager cocoapods` and
-      once with the SPM package manager (`@capacitor/cli` >= 8.3.2 for the SPM path to actually
-      pick up this plugin's own `Package.swift`, per the (I1) gap above).
-- [ ] `presentInAppController` specifically on a UIScene-lifecycle host (Capacitor 8.5+): confirms
-      `wegKeyWindow` finds the right window instead of the removed `.keyWindow`/
-      `.windows.firstObject` lookup — this is a real behavior change on top of the class rewrite,
-      not just a refactor, and is the one most likely to regress silently.

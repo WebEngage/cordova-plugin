@@ -350,7 +350,7 @@ static WebEngagePlugin *webEngagePlugin;
     @try {
         [self applyAttributeWithName:attributeName andValue:attributeValue];
     } @catch (NSException *exception) {
-        NSLog(WEG_LOG_TAG @" : setAttribute skipped an attribute: %@: %@", exception.name, exception.reason);
+        NSLog(WEG_LOG_TAG @" : setAttribute caught %@", exception.name);
     }
 }
 
@@ -550,7 +550,7 @@ static WebEngagePlugin *webEngagePlugin;
     @try {
         action();
     } @catch (NSException *exception) {
-        NSLog(WEG_LOG_TAG @" : %@ failed: %@: %@", command.methodName, exception.name, exception.reason);
+        NSLog(WEG_LOG_TAG @" : %@ caught %@", command.methodName, exception.name);
         [self sendErrorCallback:command message:WEG_ERROR_UNEXPECTED];
     }
 }
