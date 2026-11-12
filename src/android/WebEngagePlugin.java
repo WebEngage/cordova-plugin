@@ -9,7 +9,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.Context;
-import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -64,9 +63,12 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     @Override
     public void onSecurityException(Map<String, Object> errorDetails) {
         Logger.e(TAG, "JWT security exception received, notifying JS");
-        if (errorDetails != null) {
-            JSONObject errorObject = new JSONObject(errorDetails);
-            sendJwtEvent(WE_CORE_CONSTANTS.EVENT_EXPIRED, errorObject);
+        try {
+            if (errorDetails != null) {
+                sendJwtEvent(WE_CORE_CONSTANTS.EVENT_EXPIRED, new JSONObject(errorDetails));
+            }
+        } catch (Exception | LinkageError e) {
+            Logger.e(TAG, "JWT expiry was not delivered to JS: " + e.getClass().getSimpleName());
         }
     }
 
@@ -478,8 +480,8 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         Logger.d(TAG, "Activity Start");
         try {
             WebEngage.get().analytics().start(cordova.getActivity());
-        } catch (Exception e) {
-            Logger.e(TAG, "Activity start was not reported to WebEngage: " + e.getMessage());
+        } catch (Exception | LinkageError e) {
+            Logger.e(TAG, "Activity start was not reported to WebEngage: " + e.getClass().getSimpleName());
         }
         super.onStart();
     }
@@ -489,8 +491,8 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         Logger.d(TAG, "Activity Stop");
         try {
             WebEngage.get().analytics().stop(cordova.getActivity());
-        } catch (Exception e) {
-            Logger.e(TAG, "Activity stop was not reported to WebEngage: " + e.getMessage());
+        } catch (Exception | LinkageError e) {
+            Logger.e(TAG, "Activity stop was not reported to WebEngage: " + e.getClass().getSimpleName());
         }
         super.onStop();
     }
@@ -498,14 +500,18 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     @Override
     public PushNotificationData onPushNotificationReceived(Context context, PushNotificationData notificationData) {
         // The option values come from JavaScript; a non-boolean value is ignored instead of failing on the SDK thread.
-        if (Boolean.TRUE.equals(pushOptions.get(WE_CORE_CONSTANTS.PUSH_SOUND))) {
-            notificationData.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION));
-        }
-        if (Boolean.TRUE.equals(pushOptions.get(WE_CORE_CONSTANTS.PUSH_VIBRATION))) {
-            notificationData.setVibrateFlag(true);
-        }
-        if (pushOptions.get(WE_CORE_CONSTANTS.PUSH_SHOULD_RENDER) instanceof Boolean) {
-            notificationData.setShouldRender((Boolean) pushOptions.get(WE_CORE_CONSTANTS.PUSH_SHOULD_RENDER));
+        try {
+            if (Boolean.TRUE.equals(pushOptions.get(WE_CORE_CONSTANTS.PUSH_SOUND))) {
+                notificationData.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION));
+            }
+            if (Boolean.TRUE.equals(pushOptions.get(WE_CORE_CONSTANTS.PUSH_VIBRATION))) {
+                notificationData.setVibrateFlag(true);
+            }
+            if (pushOptions.get(WE_CORE_CONSTANTS.PUSH_SHOULD_RENDER) instanceof Boolean) {
+                notificationData.setShouldRender((Boolean) pushOptions.get(WE_CORE_CONSTANTS.PUSH_SHOULD_RENDER));
+            }
+        } catch (Exception | LinkageError e) {
+            Logger.e(TAG, "Push options were not applied: " + e.getClass().getSimpleName());
         }
         return notificationData;
     }
@@ -543,8 +549,8 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                 Logger.e(TAG, "Exception while merging push JSON: " + e.getMessage());
             }
             sendPushEvent(WE_CORE_CONSTANTS.EVENT_CLICK, uri, customData);
-        } catch (Exception e) {
-            Logger.e(TAG, "Push click was not delivered to JS: " + e.getMessage());
+        } catch (Exception | LinkageError e) {
+            Logger.e(TAG, "Push click was not delivered to JS: " + e.getClass().getSimpleName());
         }
         return false;
     }
@@ -560,8 +566,8 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
                 Logger.e(TAG, "Exception while merging push JSON: " + e.getMessage());
             }
             sendPushEvent(WE_CORE_CONSTANTS.EVENT_CLICK, uri, customData);
-        } catch (Exception e) {
-            Logger.e(TAG, "Push action click was not delivered to JS: " + e.getMessage());
+        } catch (Exception | LinkageError e) {
+            Logger.e(TAG, "Push action click was not delivered to JS: " + e.getClass().getSimpleName());
         }
         return false;
     }
@@ -573,13 +579,13 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
 
     @Override
     public InAppNotificationData onInAppNotificationPrepared(Context context, InAppNotificationData notificationData) {
-        if (inappOptions.get(WE_CORE_CONSTANTS.INAPP_SHOULD_RENDER) instanceof Boolean) {
-            notificationData.setShouldRender((Boolean) inappOptions.get(WE_CORE_CONSTANTS.INAPP_SHOULD_RENDER));
-        }
         try {
+            if (inappOptions.get(WE_CORE_CONSTANTS.INAPP_SHOULD_RENDER) instanceof Boolean) {
+                notificationData.setShouldRender((Boolean) inappOptions.get(WE_CORE_CONSTANTS.INAPP_SHOULD_RENDER));
+            }
             sendNotificationEvent(WE_CORE_CONSTANTS.EVENT_PREPARED, notificationData.getData(), null);
-        } catch (Exception e) {
-            Logger.e(TAG, "In-app prepared event was not delivered to JS: " + e.getMessage());
+        } catch (Exception | LinkageError e) {
+            Logger.e(TAG, "In-app prepared event was not delivered to JS: " + e.getClass().getSimpleName());
         }
         return notificationData;
     }
@@ -588,8 +594,8 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     public void onInAppNotificationShown(Context context, InAppNotificationData notificationData) {
         try {
             sendNotificationEvent(WE_CORE_CONSTANTS.EVENT_SHOWN, notificationData.getData(), null);
-        } catch (Exception e) {
-            Logger.e(TAG, "In-app shown event was not delivered to JS: " + e.getMessage());
+        } catch (Exception | LinkageError e) {
+            Logger.e(TAG, "In-app shown event was not delivered to JS: " + e.getClass().getSimpleName());
         }
     }
 
@@ -597,8 +603,8 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     public void onInAppNotificationDismissed(Context context, InAppNotificationData notificationData) {
         try {
             sendNotificationEvent(WE_CORE_CONSTANTS.EVENT_DISMISS, notificationData.getData(), null);
-        } catch (Exception e) {
-            Logger.e(TAG, "In-app dismiss event was not delivered to JS: " + e.getMessage());
+        } catch (Exception | LinkageError e) {
+            Logger.e(TAG, "In-app dismiss event was not delivered to JS: " + e.getClass().getSimpleName());
         }
     }
 
@@ -607,8 +613,8 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         // Keep the 1.3.2 value: the string "null" when the SDK passes no action id.
         try {
             sendNotificationEvent(WE_CORE_CONSTANTS.EVENT_CLICK, notificationData.getData(), actionId == null ? "null" : actionId);
-        } catch (Exception e) {
-            Logger.e(TAG, "In-app click event was not delivered to JS: " + e.getMessage());
+        } catch (Exception | LinkageError e) {
+            Logger.e(TAG, "In-app click event was not delivered to JS: " + e.getClass().getSimpleName());
         }
         return false;
     }

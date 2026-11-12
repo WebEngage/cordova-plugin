@@ -27,15 +27,6 @@ static NSString *WEGStringArgument(NSArray *arguments, NSUInteger index) {
     return [value isKindOfClass:[NSString class]] ? value : nil;
 }
 
-// The object as JSON text, or nil when it is nil or not JSON-serialisable (NSJSONSerialization raises on those).
-static NSString *WEGJSONString(id object) {
-    if (object == nil || ![NSJSONSerialization isValidJSONObject:object]) {
-        return nil;
-    }
-    NSData *data = [NSJSONSerialization dataWithJSONObject:object options:0 error:nil];
-    return data ? [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] : nil;
-}
-
 @implementation WebEngagePlugin
 
 static WebEngagePlugin *webEngagePlugin;
@@ -406,7 +397,7 @@ static WebEngagePlugin *webEngagePlugin;
 }
 
 /** In-App Callbacks **/
-- (NSMutableDictionary *)notificationPrepared:(NSMutableDictionary *)inAppNotificationData
+- (NSDictionary *)notificationPrepared:(NSDictionary<NSString *, id> *)inAppNotificationData
                                   shouldStop:(BOOL *)stopRendering {
     
     NSString *inAppJSON = WEGJSONString(inAppNotificationData);
@@ -419,7 +410,7 @@ static WebEngagePlugin *webEngagePlugin;
     return inAppNotificationData;
 }
 
-- (void)notificationShown:(NSMutableDictionary *)inAppNotificationData {
+- (void)notificationShown:(NSDictionary<NSString *, id> *)inAppNotificationData {
     
     NSString *inAppJSON = WEGJSONString(inAppNotificationData);
     if (inAppJSON) {
@@ -429,7 +420,7 @@ static WebEngagePlugin *webEngagePlugin;
     }
 }
 
-- (void)notificationDismissed:(NSMutableDictionary *)inAppNotificationData {
+- (void)notificationDismissed:(NSDictionary<NSString *, id> *)inAppNotificationData {
     NSString *inAppJSON = WEGJSONString(inAppNotificationData);
     if (inAppJSON) {
         [self.commandDelegate evalJs:
@@ -438,7 +429,7 @@ static WebEngagePlugin *webEngagePlugin;
     }
 }
 
-- (void)notification:(NSMutableDictionary *)inAppNotificationData
+- (void)notification:(NSDictionary<NSString *, id> *)inAppNotificationData
   clickedWithAction:(NSString *)actionId {
     NSString* inAppJSON = WEGJSONString(inAppNotificationData);
     if (inAppJSON) {
@@ -447,18 +438,6 @@ static WebEngagePlugin *webEngagePlugin;
           WEG_JS_NOTIFICATION_CLICK_FORMAT,
           inAppJSON, WEGJSStringLiteral(actionId)]];
     }
-}
-
-+ (NSString *)evaluateJavaScript:(NSString *)script onWebView:(UIView *)webView {
-    __block NSString* resultData = [[NSString alloc] init];
-    
-    if ([webView isKindOfClass:WKWebView.class]) {
-        WKWebView *webview = (WKWebView*)webView;
-        [webview evaluateJavaScript:script completionHandler:^(id _Nullable result, NSError * _Nullable error) {
-            resultData=result;
-        }];
-    }
-    return  resultData;
 }
 
 + (void) evaluateJavaScript:(NSString *)script onWebView:(id)webView

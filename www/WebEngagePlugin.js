@@ -4,24 +4,24 @@ var channel = require("cordova/channel");
 var Constants = require("./WEConstants");
 
 function WebEngagePlugin() {
-	this.push = new WebEngagePushChannel();
-	this.notification = new WebEngageNotificationChannel();
-	this.user = new WebEngageUserChannel();
-	this._options = {};
-	this.jwtManager = new WebEngageJWTManager();
-
+  this.push = new WebEngagePushChannel();
+  this.notification = new WebEngageNotificationChannel();
+  this.user = new WebEngageUserChannel();
+  this._options = {};
+  this.jwtManager = new WebEngageJWTManager();
 }
 
-// Promise wrappers (@awesome-cordova-plugins) call fn(...args, resolve, reject). None of this
-// plugin's data arguments are functions, so trailing functions are success/error callbacks.
-// Direct calls without them get null callbacks, as before.
+// Optional callbacks come last: fn(...args, successCallback, errorCallback). One trailing function is the
+// success callback; two are success and error. Promise wrappers (@awesome-cordova-plugins) call
+// fn(...args, resolve, reject) the same way. None of this plugin's data arguments are functions.
 function _popTrailingCallbacks(argsArray) {
   var args = argsArray.slice();
   var success = null;
   var error = null;
   if (args.length > 0 && typeof args[args.length - 1] === "function") {
-    error = args.pop();
+    success = args.pop();
     if (args.length > 0 && typeof args[args.length - 1] === "function") {
+      error = success;
       success = args.pop();
     }
   }
@@ -34,6 +34,26 @@ function _popTrailingCallbacksAfter(argsArray, keepCount) {
   var kept = argsArray.slice(0, keepCount);
   var popped = _popTrailingCallbacks(argsArray.slice(keepCount));
   return { args: kept, success: popped.success, error: popped.error };
+}
+
+// Invalid arguments are rejected here, before anything reaches native code, so Android and iOS reply the same way.
+function _rejectInvalid(parsed, message) {
+  console.error(Constants.LOG_PREFIX + message);
+  if (parsed.error) {
+    parsed.error(message);
+  }
+}
+
+function _succeed(parsed) {
+  if (parsed.success) {
+    parsed.success();
+  }
+}
+
+function _invoke(callback) {
+  if (typeof callback === "function") {
+    callback.apply(null, Array.prototype.slice.call(arguments, 1));
+  }
 }
 
 var _eventChannelRegistered = false;
@@ -66,6 +86,19 @@ function _registerEventChannel(pluginInstance) {
   );
 }
 
+// Shared by webengage.options, webengage.push.options and webengage.notification.options.
+function _setOption(owner, action, argsArray) {
+  var parsed = _popTrailingCallbacks(argsArray);
+  var key = toText(parsed.args[0]);
+  if (!key) {
+    _rejectInvalid(parsed, Constants.ERROR_OPTIONS_KEY);
+    return;
+  }
+  var value = parsed.args[1];
+  owner._options[key] = value;
+  exec(parsed.success, parsed.error, Constants.PLUGIN, action, [key, value]);
+}
+
 WebEngagePlugin.prototype.engage = function () {
   _registerEventChannel(this);
   var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
@@ -78,26 +111,25 @@ WebEngagePlugin.prototype.engage = function () {
 };
 
 WebEngagePlugin.prototype.options = function () {
+  _setOption(this, Constants.GLOBAL_OPTIONS, Array.prototype.slice.call(arguments));
+};
+
+WebEngagePlugin.prototype.startGAIDTracking = function () {
   var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
-  var key = parsed.args[0];
-  var value = parsed.args[1];
-  this._options[key] = value;
-  exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.GLOBAL_OPTIONS, [key, value]);
+  if (cordova.platformId === Constants.PLATFORM_ANDROID) {
+    exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.START_GAID_TRACKING, []);
+  } else {
+    _succeed(parsed);
+  }
 };
-
-WebEngagePlugin.prototype.startGAIDTracking = function() {
-	var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
-	if(cordova.platformId === Constants.PLATFORM_ANDROID){
-		exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.START_GAID_TRACKING,[]);
-	} else if (parsed.success) {
-		parsed.success();
-	}
-};
-
 
 WebEngagePlugin.prototype.track = function () {
   var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
-  var eventName = parsed.args[0];
+  var eventName = toText(parsed.args[0]);
+  if (!eventName) {
+    _rejectInvalid(parsed, Constants.ERROR_TRACK_EVENT_NAME);
+    return;
+  }
   var attributes = parsed.args[1];
   if (attributes === undefined) {
     exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.TRACK, [eventName]);
@@ -110,10 +142,7 @@ WebEngagePlugin.prototype.screen = function () {
   var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
   var screenName = parsed.args[0];
   var screenData = parsed.args[1];
-  if (
-    screenName !== undefined &&
-    (typeof screenName === "string" || screenName instanceof String)
-  ) {
+  if (isValidString(screenName) && screenName.length > 0) {
     if (screenData === undefined) {
       exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SCREEN_NAVIGATED, [screenName]);
     } else {
@@ -122,13 +151,10 @@ WebEngagePlugin.prototype.screen = function () {
         screenData,
       ]);
     }
-  } else if (screenName !== undefined && isValidJavascriptObject(screenName)) {
+  } else if (isValidJavascriptObject(screenName)) {
     exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SCREEN_NAVIGATED, [null, screenName]);
   } else {
-    console.error(Constants.ERROR_INVALID_SCREEN_ARGUMENTS);
-    if (parsed.error) {
-      parsed.error(Constants.ERROR_INVALID_SCREEN_ARGUMENTS);
-    }
+    _rejectInvalid(parsed, Constants.ERROR_SCREEN);
   }
 };
 
@@ -139,58 +165,46 @@ function WebEngagePushChannel() {
 }
 
 WebEngagePushChannel.prototype.options = function () {
-  var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
-  var key = parsed.args[0];
-  var value = parsed.args[1];
-  this._options[key] = value;
-  exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.PUSH_OPTIONS, [key, value]);
+  _setOption(this, Constants.PUSH_OPTIONS, Array.prototype.slice.call(arguments));
 };
 
 WebEngagePushChannel.prototype.onClick = function (callback) {
   var parsed = _popTrailingCallbacksAfter(Array.prototype.slice.call(arguments), 1);
   this.clickCallback = callback;
-  if (parsed.success) {
-    parsed.success();
-  }
+  _succeed(parsed);
 };
 
 WebEngagePushChannel.prototype.onMessageReceived = function () {
   var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
   var payload = parsed.args[0];
-  if(cordova.platformId === Constants.PLATFORM_ANDROID){
+  if (!isPushPayload(payload)) {
+    _rejectInvalid(parsed, Constants.ERROR_PUSH_PAYLOAD);
+    return;
+  }
+  if (cordova.platformId === Constants.PLATFORM_ANDROID) {
     exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.ON_MESSAGE_RECEIVED, [payload]);
-  } else if (parsed.success) {
-    parsed.success();
+  } else {
+    _succeed(parsed);
   }
 };
 
 WebEngagePushChannel.prototype.sendFcmToken = function () {
   var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
-  var token = parsed.args[0];
-  if(cordova.platformId === Constants.PLATFORM_ANDROID){
+  var token = toText(parsed.args[0]);
+  if (!token) {
+    _rejectInvalid(parsed, Constants.ERROR_FCM_TOKEN);
+    return;
+  }
+  if (cordova.platformId === Constants.PLATFORM_ANDROID) {
     exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SEND_FCM_TOKEN, [token]);
-  } else if (parsed.success) {
-    parsed.success();
+  } else {
+    _succeed(parsed);
   }
 };
 
-WebEngagePushChannel.prototype.onCallbackReceived = function (
-  type,
-  uri,
-  customData
-) {
-  if (type) {
-    switch (type) {
-      case Constants.EVENT_SHOWN:
-        break;
-      case Constants.EVENT_CLICK:
-        if (typeof this.clickCallback === "function") {
-          this.clickCallback(uri, customData);
-        }
-        break;
-      case Constants.EVENT_DISMISS:
-        break;
-    }
+WebEngagePushChannel.prototype.onCallbackReceived = function (type, uri, customData) {
+  if (type === Constants.EVENT_CLICK) {
+    _invoke(this.clickCallback, uri, customData);
   }
 };
 
@@ -203,81 +217,81 @@ function WebEngageNotificationChannel() {
 }
 
 WebEngageNotificationChannel.prototype.options = function () {
-  var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
-  var key = parsed.args[0];
-  var value = parsed.args[1];
-  this._options[key] = value;
-  exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.INAPP_OPTIONS, [key, value]);
+  _setOption(this, Constants.INAPP_OPTIONS, Array.prototype.slice.call(arguments));
 };
 
 WebEngageNotificationChannel.prototype.onShown = function (callback) {
   var parsed = _popTrailingCallbacksAfter(Array.prototype.slice.call(arguments), 1);
   this.shownCallback = callback;
-  if (parsed.success) {
-    parsed.success();
-  }
+  _succeed(parsed);
 };
 
 WebEngageNotificationChannel.prototype.onClick = function (callback) {
   var parsed = _popTrailingCallbacksAfter(Array.prototype.slice.call(arguments), 1);
   this.clickCallback = callback;
-  if (parsed.success) {
-    parsed.success();
-  }
+  _succeed(parsed);
 };
 
 WebEngageNotificationChannel.prototype.onDismiss = function (callback) {
   var parsed = _popTrailingCallbacksAfter(Array.prototype.slice.call(arguments), 1);
   this.dismissCallback = callback;
-  if (parsed.success) {
-    parsed.success();
-  }
+  _succeed(parsed);
 };
+
 WebEngageNotificationChannel.prototype.onPrepared = function (callback) {
   var parsed = _popTrailingCallbacksAfter(Array.prototype.slice.call(arguments), 1);
   this.preparedCallback = callback;
-  if (parsed.success) {
-    parsed.success();
+  _succeed(parsed);
+};
+
+WebEngageNotificationChannel.prototype.onCallbackReceived = function (type, notificationData, actionId) {
+  switch (type) {
+    case Constants.EVENT_SHOWN:
+      _invoke(this.shownCallback, notificationData);
+      break;
+    case Constants.EVENT_CLICK:
+      _invoke(this.clickCallback, notificationData, actionId);
+      break;
+    case Constants.EVENT_DISMISS:
+      _invoke(this.dismissCallback, notificationData);
+      break;
+    case Constants.EVENT_PREPARED:
+      _invoke(this.preparedCallback, notificationData);
+      break;
   }
 };
 
-WebEngageNotificationChannel.prototype.onCallbackReceived = function (
-  type,
-  notificationData,
-  actionId
-) {
-  if (type) {
-    switch (type) {
-      case Constants.EVENT_SHOWN:
-        this.shownCallback(notificationData);
-        break;
-      case Constants.EVENT_CLICK:
-        this.clickCallback(notificationData, actionId);
-        break;
-      case Constants.EVENT_DISMISS:
-        this.dismissCallback(notificationData);
-        break;
-      case Constants.EVENT_PREPARED:
-        this.preparedCallback(notificationData);
-        break;
-    }
-  }
-};
 function WebEngageUserChannel() {
 }
 
-WebEngageUserChannel.prototype.login = function() {
-	var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
-	var userId = parsed.args[0];
-	var secureToken = parsed.args.length > 1 ? parsed.args[1] : null;
-	exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.LOGIN, [userId, secureToken]);
+WebEngageUserChannel.prototype.login = function () {
+  var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
+  var userId = parsed.args[0];
+  if (!isValidString(userId) || userId.length === 0) {
+    _rejectInvalid(parsed, Constants.ERROR_LOGIN_USER_ID);
+    return;
+  }
+  // No token (missing, null or empty) means a plain login on both platforms.
+  var secureToken = parsed.args[1];
+  if (secureToken === undefined || secureToken === null || secureToken === "") {
+    secureToken = null;
+  } else if (!isValidString(secureToken)) {
+    _rejectInvalid(parsed, Constants.ERROR_LOGIN_SECURE_TOKEN);
+    return;
+  }
+  exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.LOGIN, [userId, secureToken]);
 };
-WebEngageUserChannel.prototype.setSecureToken = function() {
-	var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
-	var userId = parsed.args[0];
-	var jwtToken = parsed.args[1];
-	exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SET_SECURE_TOKEN, [userId, jwtToken]);
-}
+
+WebEngageUserChannel.prototype.setSecureToken = function () {
+  var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
+  var userId = parsed.args[0];
+  var jwtToken = parsed.args[1];
+  if (!isValidString(userId) || userId.length === 0 || !isValidString(jwtToken) || jwtToken.length === 0) {
+    _rejectInvalid(parsed, Constants.ERROR_SECURE_TOKEN);
+    return;
+  }
+  exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SET_SECURE_TOKEN, [userId, jwtToken]);
+};
 
 WebEngageUserChannel.prototype.logout = function () {
   var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
@@ -290,70 +304,79 @@ WebEngageUserChannel.prototype.setAttribute = function () {
   var value = parsed.args[1];
   if (value === undefined && isValidJavascriptObject(key)) {
     exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SET_ATTRIBUTE, [key]);
-  } else if (key && isValidString(key) && value !== undefined) {
+  } else if (isValidString(key) && key.length > 0 && value !== undefined) {
     exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SET_ATTRIBUTE, [key, value]);
-  } else if (parsed.success) {
-    parsed.success();
+  } else {
+    _rejectInvalid(parsed, Constants.ERROR_SET_ATTRIBUTE);
   }
 };
 
 WebEngageUserChannel.prototype.setDevicePushOptIn = function () {
-	var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
-	var optIn = parsed.args[0];
-	if(cordova.platformId === Constants.PLATFORM_ANDROID){
-    exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SET_DEVICE_PUSH_OPT_IN, [optIn]);
-  } else if (parsed.success) {
-    parsed.success();
+  var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
+  var optIn = parsed.args[0];
+  if (typeof optIn !== "boolean") {
+    _rejectInvalid(parsed, Constants.ERROR_DEVICE_PUSH_OPT_IN);
+    return;
   }
-}
+  if (cordova.platformId === Constants.PLATFORM_ANDROID) {
+    exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SET_DEVICE_PUSH_OPT_IN, [optIn]);
+  } else {
+    _succeed(parsed);
+  }
+};
 
 WebEngageUserChannel.prototype.setUserOptIn = function () {
   var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
-  var channel = parsed.args[0];
+  var channelName = parsed.args[0];
   var optIn = parsed.args[1];
-  exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SET_USER_OPT_IN, [channel, optIn]);
+  if (!isOptInChannel(channelName) || typeof optIn !== "boolean") {
+    _rejectInvalid(parsed, Constants.ERROR_USER_OPT_IN);
+    return;
+  }
+  exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SET_USER_OPT_IN, [channelName, optIn]);
 };
 
 WebEngageUserChannel.prototype.setLocation = function () {
   var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
-  var lat = parsed.args[0];
-  var lng = parsed.args[1];
-  exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SET_LOCATION, [lat, lng]);
+  var latitude = toCoordinate(parsed.args[0]);
+  var longitude = toCoordinate(parsed.args[1]);
+  if (latitude === null || longitude === null) {
+    _rejectInvalid(parsed, Constants.ERROR_SET_LOCATION);
+    return;
+  }
+  exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.SET_LOCATION, [latitude, longitude]);
 };
 
 WebEngageUserChannel.prototype.presentInAppController = function () {
   var parsed = _popTrailingCallbacks(Array.prototype.slice.call(arguments));
-  if (typeof cordova !== 'undefined' && cordova.platformId === 'ios') {
+  if (cordova.platformId === Constants.PLATFORM_IOS) {
     exec(parsed.success, parsed.error, Constants.PLUGIN, Constants.PRESENT_IN_APP_CONTROLLER, []);
   } else {
     console.log("presentInAppController is not supported on this platform.");
-    if (parsed.success) {
-      parsed.success();
-    }
+    _succeed(parsed);
   }
 };
 
-function WebEngageJWTManager () {
-	this.invalidatedCallback = function () {};
-	this._options = {};
+function WebEngageJWTManager() {
+  this.invalidatedCallback = function () {};
+  this._options = {};
 }
-WebEngageJWTManager.prototype.tokenInvalidatedCallback = function(callback) {
-	var parsed = _popTrailingCallbacksAfter(Array.prototype.slice.call(arguments), 1);
-	this.invalidatedCallback = callback;
-	if (parsed.success) {
-		parsed.success();
-	}
+
+WebEngageJWTManager.prototype.tokenInvalidatedCallback = function (callback) {
+  var parsed = _popTrailingCallbacksAfter(Array.prototype.slice.call(arguments), 1);
+  this.invalidatedCallback = callback;
+  _succeed(parsed);
 };
-	
-WebEngageJWTManager.prototype.onCallbackReceived = function(type, errorMessage){
-	if (type == Constants.EVENT_EXPIRED){
-		if(this.invalidatedCallback) {
-			this.invalidatedCallback(errorMessage);
-		} else {
-			console.log("WebEngage: tokenInvalidatedCallback is not defined")
-		}
-	}
-}
+
+WebEngageJWTManager.prototype.onCallbackReceived = function (type, errorMessage) {
+  if (type === Constants.EVENT_EXPIRED) {
+    if (typeof this.invalidatedCallback === "function") {
+      this.invalidatedCallback(errorMessage);
+    } else {
+      console.log("WebEngage: tokenInvalidatedCallback is not defined");
+    }
+  }
+};
 
 function isValidJavascriptObject(val) {
   return (
@@ -370,6 +393,49 @@ function isValidString(val) {
     val != null &&
     (typeof val === "string" || val instanceof String)
   );
+}
+
+// Text accepted for event names, option keys and FCM tokens: a non-empty string, or a number or boolean
+// sent as its text (Android has always converted these; iOS now does the same). Anything else is null.
+function toText(val) {
+  var text = null;
+  if (isValidString(val)) {
+    text = String(val);
+  } else if ((typeof val === "number" && isFinite(val)) || typeof val === "boolean") {
+    text = String(val);
+  }
+  return text && text.length > 0 ? text : null;
+}
+
+// A finite number, or a string holding one ("12.97"). Anything else is null.
+function toCoordinate(val) {
+  if (typeof val === "number") {
+    return isFinite(val) ? val : null;
+  }
+  if (isValidString(val) && String(val).trim().length > 0) {
+    var number = Number(val);
+    return isFinite(number) ? number : null;
+  }
+  return null;
+}
+
+function isOptInChannel(val) {
+  return isValidString(val) && Constants.OPT_IN_CHANNELS.indexOf(String(val).toLowerCase()) !== -1;
+}
+
+// A push payload as an object, or as JSON text of an object.
+function isPushPayload(val) {
+  if (isValidJavascriptObject(val)) {
+    return true;
+  }
+  if (isValidString(val)) {
+    try {
+      return isValidJavascriptObject(JSON.parse(String(val)));
+    } catch (e) {
+      return false;
+    }
+  }
+  return false;
 }
 
 if (typeof module != "undefined" && module.exports) {

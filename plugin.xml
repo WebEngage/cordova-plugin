@@ -21,7 +21,7 @@
             </feature>
         </config-file>
 
-        <config-file parent="UIBackgroundModes" target="*Info.plist">
+        <config-file parent="UIBackgroundModes" target="*-Info.plist">
             <array>
                 <string>fetch</string>
                 <string>remote-notification</string>

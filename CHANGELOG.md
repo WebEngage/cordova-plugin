@@ -3,112 +3,128 @@
 ## 2.0.0
 
 ### Breaking changes (read before upgrading from 1.3.x)
-- **Host floor raised** from cordova-android >= 4.1 / cordova-ios >= 4 to **cordova-android >= 12.0.0 / cordova-ios >= 7.0.0**
-  (`plugin.xml` `<engines>`, `package.json` `engines.cordovaDependencies["2.0.0"]`). Apps on older hosts stay on 1.3.2
-  (pin it exactly; a `^1.3.2` range keeps resolving to 1.x only). Released as 2.0.0 so that `^1.x` ranges never pick this up silently.
-  One verified technical reason: `android-sdk` 5.2.0 pulls `com.webengage:we-inspector`, which needs AndroidX libraries that require `compileSdk` 33 or higher. cordova-android 11 and older compile at 32 or lower, so the build fails in `checkDebugAarMetadata` (reproduced on cordova-android 11.0.0; 1.3.2 builds there). cordova-android 12.0.1 builds.
-- **cordova-ios 8 now installs this plugin through Swift Package Manager** (`<platform name="ios" package="swift">` + `Package.swift`),
-  not CocoaPods. The CocoaPods pod is kept for cordova-ios 7 and for hosts that use pods (`nospm="true"`). If your app also uses
-  `we-notificationinbox-cordova`, upgrade it to the matching release at the same time; an old inbox release still pulls the WebEngage pod
-  and can put a second copy of the SDK in the app.
-- **Android native SDK moved from `com.webengage:android-sdk:4.+` to `5.+`.** The range is dynamic by design (it always resolves to the
-  newest 5.x). Every SDK call the plugin makes was checked against 4.20.0 and 5.2.0 (the plugin compiles against both). SDK 5.x adds a
-  transitive runtime dependency `com.webengage:we-inspector`; make sure your Maven mirror/allow-list can resolve it.
-- **In-app `dismiss` no longer also fires the `prepared` callback.** A missing `break` made every dismissal re-fire `onPrepared`; an app that
+- **Minimum platform versions raised** from cordova-android >= 4.1 / cordova-ios >= 4 to **cordova-android >= 12.0.0 / cordova-ios >= 7.0.0**
+  (`plugin.xml` `<engines>`, `package.json` `engines.cordovaDependencies["2.0.0"]`). Apps on older platforms stay on 1.3.2 and must
+  install it with an explicit version (`cordova plugin add cordova-plugin-webengage@1.3.2`); a `^1.3.2` range keeps resolving to 1.x.
+  Reason: `android-sdk` 5.2.0 pulls `com.webengage:we-inspector`, which needs AndroidX libraries that require `compileSdk` 33 or higher;
+  cordova-android 11 and older compile at 32 or lower, so the build fails in `checkDebugAarMetadata`.
+- **cordova-ios 8 installs the iOS SDK through Swift Package Manager** (`<platform name="ios" package="swift">` + `Package.swift`), not
+  CocoaPods. cordova-ios 7 keeps using the CocoaPods pod. Upgrade `we-notificationinbox-cordova` to 2.0.0 at the same time: inbox 1.0.1 still
+  pulls the WebEngage pod and can put a second copy of the SDK in the app. Remove any WebEngage framework or pod your app added itself.
+- **Android native SDK moved from `com.webengage:android-sdk:4.+` to `5.+`.** The range is dynamic by design (always the newest 5.x).
+  SDK 5.x adds the transitive runtime dependency `com.webengage:we-inspector`; make sure your Maven mirror or allow-list can resolve it.
+- **Android Gradle script:** the plugin no longer adds `jcenter()` / `mavenCentral()` to every project and no longer sets
+  `compileSdkVersion` / `minSdkVersion` / `targetSdkVersion` (`jcenter()` fails on Gradle 9). An app that relied on this plugin to add
+  `jcenter()` for another dependency must declare the repository itself.
+- **iOS WebEngage pod floor is `>= 6.16.6`** (was unpinned). Apps locked on an older WebEngage pod move to 6.16.6 or later.
+- **In-app `dismiss` no longer also fires `onPrepared`.** A missing `break` made every dismissal re-fire the prepared callback; an app that
   relied on that now only gets `onDismiss`.
-- **Plugin methods accept optional trailing success/error callbacks.** A function passed as the last argument to a plugin method is now treated
-  as a callback (this is how promise wrappers such as `@awesome-cordova-plugins` settle). Calls that never passed one are unaffected.
-  One visible consequence: `user.setAttribute({ ... }, successFn)` (object form with a trailing function) used to send nothing, because the function
-  landed in the value slot; it now applies the attributes.
+- **Success and error callbacks are now called.** Every method accepts optional callbacks as its last arguments:
+  `method(...args, successCallback, errorCallback)`. One trailing function is the success callback; two are success and error. In 1.3.2 these
+  callbacks were never called, so promise wrappers such as `@awesome-cordova-plugins/webengage` never settled. They now resolve on success
+  and reject on error: code after `await` that never ran before now runs, and an unhandled rejection is logged if you don't add `.catch`.
+  Calls without callbacks are unaffected. `user.setAttribute({ ... }, successFn)` (object form with a trailing function) now applies the
+  attributes; in 1.3.2 the function landed in the value slot and nothing was sent.
+- **Invalid arguments are rejected the same way on Android and iOS.** The arguments are checked once in the plugin's JavaScript: an invalid
+  call runs the error callback with a message (`track: eventName must be a non-empty string`, ...), logs it with `console.error`, and sends
+  nothing to the native SDK. Valid calls are unchanged. What changes:
+  - Reported as errors on both platforms (Android used to accept them silently or send them): a missing, `null` or empty event name, screen
+    name, user ID, secure token, FCM token or option key; `setUserOptIn` with an unknown channel or a non-boolean value; `setDevicePushOptIn`
+    with a non-boolean value; `setLocation` with values that are not numbers; `onMessageReceived` with a payload that is not an object or its
+    JSON text; `setAttribute` with neither a name and value nor one object; `login(userId, token)` with a token that is not a string (Android
+    used to skip the login, iOS logged in without the token).
+  - Accepted on both platforms (Android already accepted them; iOS replied with an error): numbers and booleans as event name, option key or
+    FCM token are sent as text (`track(123)` tracks `"123"`); `setLocation` with numeric strings such as `"12.97"` (iOS used to reject
+    them on devices whose locale uses a decimal comma, and when one coordinate was a number and the other a string).
+  - No longer accepted on iOS (Android never accepted them): non-boolean opt-in values such as `setUserOptIn("sms", 1)`, and booleans as
+    coordinates.
+  - `login(userId, "")` and `login(userId, null)` log in without a token on both platforms.
 - **iOS:** the internal `AppDelegate (WebEngagePlugin)` category files were replaced by a plain `WEGAppDelegateHelper` class (see Changed).
-  After upgrading in place, confirm no `AppDelegate+WebEngagePlugin.*` files remain in the iOS project.
+- **Upgrading needs `cordova plugin rm` + `cordova plugin add`** (see Upgrading from 1.3.x).
 
 ### Added
-- iOS: SPM support via a dual manifest (`Package.swift` + CocoaPods `nospm` fallback). The manifest links the Core **and Location** products
-  (`WebEngageCore`, `WebEngageLocation`), so an app that moves from CocoaPods to SPM keeps automatic location tracking and geofencing.
-- Android/iOS/www: every plugin action now resolves its JS callback (`callbackContext.success()`/`.error()` natively, `exec()` success/error
-  wired in JS), so promise-wrapper libraries such as `@awesome-cordova-plugins` settle. This includes iOS `engage`, which sent no reply before.
-- `plugin.xml` `<engines>` and `package.json` `engines.cordovaDependencies` declare the real host floor (cordova-android >=12.0.0,
-  cordova-ios >=7.0.0), so old Cordova CLIs that do not pin a version select an older compatible release.
-- `scripts/check-version.js` keeps package.json / plugin.xml / version.properties / `WEGPluginVersion` in sync (`npm run check-version`, `prepublishOnly`).
-- `package.json` `files` allowlist pins the published tarball to the plugin's shipping files, so build artifacts (`.build/`, `.swiftpm/`,
-  `Package.resolved`) can never leak into a release.
-- iOS: no-op handlers for the Android-only actions (`pushOptions`, `inappOptions`, `globalOptions`, `setDevicePushOptIn`, `sendFcmToken`,
-  `onMessageReceived`), so calling them on iOS resolves instead of hanging.
-- README: Capacitor section, supported-versions table, and a note that `engage()` is called once at app launch.
+- iOS: Swift Package Manager support (`Package.swift`, plus the CocoaPods pod with `nospm` for cordova-ios 7). The package links the Core
+  **and Location** products (`WebEngageCore`, `WebEngageLocation`), so an app that moves from CocoaPods to SPM keeps automatic location
+  tracking and geofencing.
+- Optional success and error callbacks on every method (see Breaking changes). This includes iOS `engage`, which sent no reply before.
+- iOS: handlers for the Android-only actions (`pushOptions`, `inappOptions`, `globalOptions`, `setDevicePushOptIn`, `sendFcmToken`,
+  `onMessageReceived`), so calling them on iOS succeeds instead of never replying.
+- `plugin.xml` `<engines>` and `package.json` `engines.cordovaDependencies` declare the minimum platform versions, so `cordova plugin add`
+  without a version selects 1.3.2 for projects whose installed platforms are older.
+- `npm run check-version` (also run on `prepublishOnly`) keeps `package.json`, `plugin.xml`, `version.properties` and `WEGPluginVersion` in sync.
+- `package.json` `files` allowlist: only the plugin's shipping files are published.
 
 ### Changed
-- Android: `com.webengage:android-sdk` `4.+` → `5.+` (dynamic by design, see Breaking changes).
-- iOS: the WebEngage pod floor is now `>= 6.16.6` (was unpinned) and the SPM package floor is `from 2.0.0` (SDK core 7.x). This follows the
-  react-native-webengage plugin. Apps locked on SDK 6.x keep their lock; new installs get the latest. There is no upper cap.
-- Android: push/in-app/JWT events are delivered via `PluginResult` + `keepCallback(true)` instead of the deprecated `webView.sendJavascript()`.
-  No change to the public JS callback API. The channel is opened by the plugin's own JS on **every page load** (not from `engage()`), because
-  `engage()` runs once per app launch while Cordova drops the channel on every top-level navigation or reload.
-- iOS: `AppDelegate` category replaced by a plain `WEGAppDelegateHelper` class, required for cordova-ios 8 SPM builds (the category's header cannot
-  see the app's `AppDelegate.h` under SPM) and to drop the old code that operated on a fake, never-initialized `AppDelegate` instance.
-- iOS: push-click URL opening runs on the main queue via `openURL:options:completionHandler:` (was a background queue with the deprecated call).
-- iOS: in-app-controller presentation uses a UIScene-safe window lookup (falls back to the pre-UIScene lookup on iOS 11/12 / cordova-ios 7).
-- `Package.swift` comments no longer contain the upstream organisation or Cordova platform repository names (see Fixed).
-- Logging: removed output that was always on or noisy: the plugin Gradle script no longer prints `projectDir` on every build, the FCM token is no longer logged by `sendFcmToken`, the Android constructor/initialize/static-block messages and `printStackTrace` calls are gone, the JS "Token invalidated!" message is gone, and `hooks/clean.js` no longer dumps `android.json` to the console. Remaining plugin diagnostics go through the SDK `Logger` and show only when SDK debug logging is enabled (see `DEVELOPER_NOTES.md`). The `largeIcon` format hint no longer says `smallIcon`.
-- Packaging: the dev-only `scripts/check-version.js` is no longer shipped in the npm tarball (it still runs on `prepublishOnly`); dead commented-out code was removed.
+- Android: push, in-app and JWT events are delivered through a Cordova plugin result channel instead of the deprecated
+  `webView.sendJavascript()`, with the same callback arguments as 1.3.2. The plugin's JavaScript opens the channel on every page load,
+  because Cordova drops it on every top-level navigation or reload while `engage()` runs only once per app launch.
+- iOS: the `AppDelegate` category is replaced by `WEGAppDelegateHelper`, which also receives the SDK's in-app callbacks and forwards them to the
+  plugin. Needed for cordova-ios 8 (the category cannot import the app's `AppDelegate.h` under SPM, and the plugin does not exist yet when the
+  SDK starts on UIScene apps).
+- iOS: push deep links are opened on the main queue with `openURL:options:completionHandler:`; the in-app controller uses a UIScene-safe
+  window lookup.
+- Hooks: the `xml2js` dependency is now `^0.6.2` (was `^0.4.17`, which `npm audit` reports for GHSA-776f-qx25-q3cc). The hooks produce
+  byte-identical `config.xml`, `AndroidManifest.xml` and `android.json` output with both versions.
+- Logging: always-on output was removed (Gradle `projectDir` lines, the FCM token, Android constructor/initialize lines, `printStackTrace`,
+  the JS "Token invalidated!" message, `hooks/clean.js` dumps). Each platform logs one line when the plugin loads; Android diagnostics go
+  through the SDK `Logger` (visible when SDK debug logging is on); iOS logs invalid input and caught exceptions with `NSLog`; invalid
+  JavaScript calls are logged with `console.error`. The `largeIcon` format hint no longer says `smallIcon`.
 
 ### Fixed
 - **iOS: the app no longer terminates on wrongly typed arguments.** A `null`, number, boolean, array or object where a string is expected
-  (`track(null)`, `screen(5)`, `login(5)`, `setSecureToken(null, null)`, `setUserOptIn(null, true)`) raised an uncaught exception, and Cordova's
-  command queue does not catch it. This also affected 1.3.2 and earlier. Those calls now reply with an error and change nothing; every call that
-  worked before behaves exactly as before. Two cases changed beyond "crash becomes error": `login(id, <non-string token>)` logs in without a token,
-  as `login(id, null)` always did, and a `we_*` string attribute (`we_first_name`, `we_email`, `we_phone`, ...) set to a non-string value is
-  ignored (the SDK threw on its own queue and terminated the app). `setUserOptIn(channel, null)` replies with an error instead of crashing (in 1.3.2 it crashed with `-[NSNull boolValue]: unrecognized selector` — it did not opt the user out).
-- **iOS:** an exception raised inside any action (plugin or SDK) is logged and answered with an error instead of terminating the app; a push
-  deep link or in-app payload that is missing or not JSON no longer raises.
-- **Android:** `setAttribute` skips one attribute that the SDK cannot apply (for example an unknown `we_gender`, or a non-string `we_hashed_email`) instead of failing the whole call. It logs the skipped name through the SDK `Logger`, applies the other attributes in the call and replies success. The plugin does not validate system attributes itself; the native SDK decides which ones it accepts. In 1.3.2 such a call threw before it applied anything.
-- **Android:** callbacks that run on SDK threads no longer terminate the app: a non-boolean `webengage.push.options` / `webengage.notification.options` value
-  (`sound`, `vibration`, `shouldRender`) threw `ClassCastException` when a push or in-app arrived; a push without call-to-action data threw
-  `NullPointerException` on click; the event channel could be cleared between its null check and its use. Activity start/stop reporting is also guarded.
-- **Capacitor 8 / 9 SPM:** Capacitor's CLI rewrites a plugin's `Package.swift` with a string replace that only changes the *first* occurrence of the
-  upstream organisation name. A comment containing it was matched instead of the dependency URL, producing a non-existent repository URL
-  (`apache/capacitor-swift-pm.git` on Capacitor 8, `apache/capacitor.git` on Capacitor 9). The comments were removed.
-- **Android events lost after navigation:** the event channel was registered only inside `engage()`, so after a top-level navigation or reload
-  events were dropped until `engage()` was called again (it is only called once per launch). The channel is now opened on every page load.
-- **iOS `engage` never replied**, so `engage(success, error)` and promise wrappers never settled on iOS.
+  raised an uncaught exception that Cordova's command queue does not catch (1.3.2 and earlier). An exception raised inside any action
+  (plugin or SDK) is now logged and answered with an error, and a push deep link or in-app payload that is missing or not JSON no longer raises.
+- **Android:** `setAttribute` skips one attribute that the SDK cannot apply (for example an unknown `we_gender`, or a non-string
+  `we_hashed_email`) instead of failing the whole call; it applies the other attributes and replies success. The SDK decides which attributes
+  it accepts.
+- **Android:** callbacks that run on SDK threads, and the activity start/stop reporting, no longer terminate the app: a non-boolean
+  push/in-app `options` value (`sound`, `vibration`, `shouldRender`) threw `ClassCastException`; a push without call-to-action data threw
+  `NullPointerException` on click; an SDK method missing at runtime (`android-sdk` is the dynamic range `5.+`) would have thrown
+  `NoSuchMethodError`.
+- **iOS: `Info.plist` entries.** The plugin added its background modes (`fetch`, `remote-notification`) with `target="*Info.plist"`.
+  Cordova resolves that target differently from `*-Info.plist`: on cordova-ios 7 the modes were written to `CordovaLib/Info.plist`, so they
+  never reached the app; on cordova-ios 8 both targets point to the app's `Info.plist`, and Cordova could keep only one set of entries, dropping
+  either these modes or the app's own `*-Info.plist` entries from `config.xml` (such as `WEGLicenseCode`). The plugin now uses `*-Info.plist`,
+  so the modes are added to the app's `Info.plist` on both versions (cordova-ios 7 apps get them for the first time). Use `*-Info.plist` for
+  your own `Info.plist` entries in `config.xml` too.
+- **Android:** events are no longer lost after a top-level navigation or reload (the channel used to be registered only in `engage()`).
+- **iOS:** in-app callbacks (`onPrepared`, `onShown`, `onClick`, `onDismiss`) are delivered on cordova-ios 8 and other UIScene apps.
+- **iOS:** `engage` now replies, so `engage(success, error)` and promise wrappers settle on iOS.
 - **iOS:** a push deep link or in-app `actionId` containing a quote (or script text) broke, or could inject into, the JavaScript passed to the
-  WebView. The values are now passed as escaped JavaScript string literals (Android already used structured data).
-- Android: an unknown exec action no longer leaves its callback pending forever (the plugin now returns `false`, so Cordova reports `INVALID_ACTION`).
-- Android: an in-app click with no action id delivers the string `"null"` again, as in 1.3.2.
-- Android, Gradle 9 (Capacitor 9 / cordova-android >= 15): removed `jcenter()` / `buildscript` / `allprojects` from the plugin's gradle file.
-- Android: removed redundant `compileSdkVersion` / `minSdkVersion` / `targetSdkVersion` overrides that could silently override the host module's values.
-- Android: `mergeJson()` could throw an uncaught `NullPointerException` on a push with no `we_pushPayload` custom data.
-- Android: a push URI or in-app `actionId` containing a single quote could corrupt the generated JavaScript (events are delivered as structured data).
-- Android: `onReset()` clears the native event channel when the WebView reloads; null push `uri` / `data` keep the 1.3.2 shape (`"null"` / JSON `null`).
-- iOS: `login` / `setSecureToken` read `objectAtIndex:1` after checking `count>0` (out-of-bounds risk for a 1-argument call); `setLocation` never replied;
+  WebView. The values are now passed as escaped JavaScript string literals.
+- **JavaScript:** `console.err` (not a real method) made an invalid `screen()` call throw; a dead duplicate `screen()` was removed; a push
+  click that arrived before `push.onClick()` was registered, or an event whose handler is not a function, threw a `TypeError`.
+  `push.clickCallback` stays undefined until `push.onClick()` is called, as in 1.3.2, because iOS uses it to decide whether to open the deep
+  link itself.
+- Android: an unknown exec action no longer leaves its callback pending forever (Cordova now reports `INVALID_ACTION`).
+- Android: an in-app click with no action ID delivers the string `"null"`, as in 1.3.2; a null push URI / data keeps the 1.3.2 shape
+  (`"null"` / JSON `null`).
+- Android: `mergeJson()` could throw a `NullPointerException` on a push with no `we_pushPayload` custom data.
+- iOS: `login` / `setSecureToken` read the second argument after checking only for one (out-of-bounds risk); `setLocation` never replied;
   `BOOL`/`nil` mismatch in `setUserOptIn`.
-- www: `console.err` (not a real method), a dead duplicate `screen()`, and a push click arriving before `push.onClick()` was registered throwing a
-  TypeError. `push.clickCallback` stays undefined by default, as in 1.3.2, because iOS native uses it to decide whether to open the deep link itself.
-- README: documented the cordova-ios 7.x `SwiftVersion` workaround.
 
-### Docs
-- README: removed the GCM integration and GCM-to-FCM migration sections (GCM was shut down in 2019).
+### Capacitor
+- The plugin works in Capacitor 6 to 9 apps through Capacitor's Cordova compatibility layer, including the `@awesome-cordova-plugins/webengage`
+  wrapper. Capacitor does not read `<engines>` or `cordovaDependencies`: Capacitor 5 and older apps must pin `cordova-plugin-webengage@1.3.2`.
+- Capacitor 8 / 9 with SPM use this plugin's `Package.swift`. The comments in that file no longer contain the upstream organisation or the
+  Cordova platform repository name, because Capacitor's CLI rewrites only the first occurrence and used to produce a non-existent dependency
+  URL. Capacitor 9 with SPM needs `@capacitor/cli` 9.0.0-beta.0 or later; with 9.0.0-alpha.7 add the iOS platform with CocoaPods
+  (`npx cap add ios --packagemanager cocoapods`).
+- Capacitor does not run Cordova hooks or read `config.xml`: add the WebEngage keys directly to `AndroidManifest.xml` and `Info.plist`.
 
-### Documented, not implemented
+### Not supported
 - iOS `engage(config)` ignores its `config` argument (dynamic configuration is Android-only); this predates 2.0.0.
-- Android `login(id, token)` ignores a token that is not a string and still replies success (iOS logs in without the token); unchanged from 1.3.2.
-- A Core-only iOS variant without the Location module (RN uses `WEBENGAGE_USE_CORE`) is not offered; `plugin.xml` cannot read environment variables.
 
 ### Upgrading from 1.3.x
-Bump `package.json` and run `npm install` does **not** update the native plugin code. You must remove and
-re-add the plugin:
+`cordova plugin add` does not update a plugin that is already installed. Remove the WebEngage plugins and add them again, in this order
+(skip the plugins your app doesn't use):
 ```sh
+cordova plugin rm we-notificationinbox-cordova
+cordova plugin rm we-cordova-android-fcm
 cordova plugin rm cordova-plugin-webengage
+
 cordova plugin add cordova-plugin-webengage@2.0.0
+cordova plugin add we-cordova-android-fcm@2.0.0
+cordova plugin add we-notificationinbox-cordova@2.0.0
 ```
-Verify that `platforms/ios/.../Plugins/cordova-plugin-webengage/` contains `WEGAppDelegateHelper.*` and **no**
-`AppDelegate+WebEngagePlugin.*` after the re-add.
-
-### Unverified / needs device or simulator testing
-- Real `cap sync` + `xcodebuild` on Capacitor 8 and 9 SPM apps with this `Package.swift` (the CLI rewrite itself was verified against the installed
-  CLI sources of 8.5.2 and 9.0.0-alpha.7; other 8.x versions were not checked).
-- Android events after a page navigation, and a cold-start push click, on a real device (Cordova and Capacitor).
-- Upgrade in place from 1.3.2 (stale iOS files, `Podfile.lock`), and the mixed-version case (new core with old inbox) for duplicate SDK copies.
-- iOS in-app callbacks (`onPrepared/onShown/onClick/onDismiss`) on UIScene hosts (cordova-ios 8 / Capacitor 8+):
-  delegate wiring and simulator delivery verified; a real device run with a live in-app campaign is still pending.
-
+Then follow [Upgrading to 2.0.0](https://docs.webengage.com/docs/cordova-advanced#upgrading-to-200).

@@ -2,12 +2,14 @@
 #import <Cordova/CDVPlugin.h>
 #import <WebEngage/WebEngage.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @interface WebEngagePlugin : CDVPlugin<WEGInAppNotificationProtocol>
 
-@property (strong, nonatomic, readwrite) NSString* onActiveCallbackId;
-@property (strong, nonatomic, readwrite) NSMutableDictionary* pendingDeepLinkCallback;
+@property (strong, nonatomic, readwrite, nullable) NSString* onActiveCallbackId;
+@property (strong, nonatomic, readwrite, nullable) NSMutableDictionary* pendingDeepLinkCallback;
 
-+ (WebEngagePlugin *)webEngagePlugin;
++ (nullable WebEngagePlugin *)webEngagePlugin;
 
 - (void)initialiseWEGVersions;
 
@@ -25,3 +27,5 @@
 + (void)evaluateJavaScript:(NSString *)script onWebView:(id)webView
           completionHandler:(void (^ _Nullable)(NSString * _Nullable response, NSError * _Nullable error))completionHandler;
 @end
+
+NS_ASSUME_NONNULL_END

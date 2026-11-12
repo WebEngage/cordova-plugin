@@ -2,6 +2,7 @@ module.exports = {
   PLUGIN: "WebEngagePlugin",
 
   PLATFORM_ANDROID: "android",
+  PLATFORM_IOS: "ios",
 
   REGISTER_EVENT_CHANNEL: "registerEventChannel",
   ENGAGE: "engage",
@@ -32,5 +33,21 @@ module.exports = {
   EVENT_PREPARED: "prepared",
   EVENT_EXPIRED: "expired",
 
-  ERROR_INVALID_SCREEN_ARGUMENTS: "Invalid arguments provided to screen plugin call"
+  // Channels accepted by setUserOptIn (compared case-insensitively, as the native code does)
+  OPT_IN_CHANNELS: ["push", "sms", "email", "in_app", "whatsapp", "viber"],
+
+  LOG_PREFIX: "WebEngage: ",
+
+  ERROR_OPTIONS_KEY: "options: key must be a non-empty string",
+  ERROR_TRACK_EVENT_NAME: "track: eventName must be a non-empty string",
+  ERROR_SCREEN: "screen: pass a non-empty screen name, screen data as an object, or both",
+  ERROR_PUSH_PAYLOAD: "onMessageReceived: payload must be an object or its JSON text",
+  ERROR_FCM_TOKEN: "sendFcmToken: token must be a non-empty string",
+  ERROR_LOGIN_USER_ID: "login: userId must be a non-empty string",
+  ERROR_LOGIN_SECURE_TOKEN: "login: secureToken must be a string",
+  ERROR_SECURE_TOKEN: "setSecureToken: userId and secureToken must be non-empty strings",
+  ERROR_SET_ATTRIBUTE: "setAttribute: pass an attribute name and a value, or one object of attributes",
+  ERROR_DEVICE_PUSH_OPT_IN: "setDevicePushOptIn: optIn must be true or false",
+  ERROR_USER_OPT_IN: "setUserOptIn: channel must be one of push, sms, email, in_app, whatsapp, viber and optIn must be true or false",
+  ERROR_SET_LOCATION: "setLocation: latitude and longitude must be numbers"
 };

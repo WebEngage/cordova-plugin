@@ -4,7 +4,7 @@ import PackageDescription
 // MAINTAINERS: Capacitor's CLI rewrites this file inside node_modules on every `cap sync`, using a
 // plain string replace that only changes the FIRST occurrence of the upstream organisation name
 // and of the Cordova platform repository name. Never write either of those two names in a comment
-// above the dependency declarations (see DEVELOPER_NOTES.md, "Package.swift and Capacitor").
+// above the dependency declarations, or the CLI rewrites the comment instead of the dependency URL.
 
 let package = Package(
     name: "cordova-plugin-webengage",

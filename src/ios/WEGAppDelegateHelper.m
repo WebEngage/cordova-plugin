@@ -57,7 +57,7 @@
                     if ([response isEqualToString: @"1"]) {
 
                         //case where app is invoked from background and click callback is registered
-                        NSString* pushDataJSON = [NSJSONSerialization isValidJSONObject:pushData] ? [[NSString alloc] initWithData:[NSJSONSerialization dataWithJSONObject:pushData options:0 error:nil] encoding:NSUTF8StringEncoding] : nil;
+                        NSString* pushDataJSON = WEGJSONString(pushData);
 
                         [webEngagePlugin.commandDelegate evalJs:
                          [NSString stringWithFormat:WEG_JS_PUSH_CLICK_FORMAT,
@@ -140,22 +140,22 @@
     return rootViewController;
 }
 
-- (NSMutableDictionary *)notificationPrepared:(NSMutableDictionary *)inAppNotificationData
+- (NSDictionary *)notificationPrepared:(NSDictionary<NSString *, id> *)inAppNotificationData
                                   shouldStop:(BOOL *)stopRendering {
     WebEngagePlugin *plugin = [WebEngagePlugin webEngagePlugin];
     return plugin ? [plugin notificationPrepared:inAppNotificationData shouldStop:stopRendering]
                   : inAppNotificationData;
 }
 
-- (void)notificationShown:(NSMutableDictionary *)inAppNotificationData {
+- (void)notificationShown:(NSDictionary<NSString *, id> *)inAppNotificationData {
     [[WebEngagePlugin webEngagePlugin] notificationShown:inAppNotificationData];
 }
 
-- (void)notificationDismissed:(NSMutableDictionary *)inAppNotificationData {
+- (void)notificationDismissed:(NSDictionary<NSString *, id> *)inAppNotificationData {
     [[WebEngagePlugin webEngagePlugin] notificationDismissed:inAppNotificationData];
 }
 
-- (void)notification:(NSMutableDictionary *)inAppNotificationData
+- (void)notification:(NSDictionary<NSString *, id> *)inAppNotificationData
   clickedWithAction:(NSString *)actionId {
     [[WebEngagePlugin webEngagePlugin] notification:inAppNotificationData clickedWithAction:actionId];
 }
