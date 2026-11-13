@@ -88,6 +88,8 @@
   so the modes are added to the app's `Info.plist` on both versions (cordova-ios 7 apps get them for the first time). Use `*-Info.plist` for
   your own `Info.plist` entries in `config.xml` too.
 - **Android:** events are no longer lost after a top-level navigation or reload (the channel used to be registered only in `engage()`).
+- **Android:** push and in-app callbacks no longer fire twice after the app's activity is recreated while the app process keeps running
+  (for example after `navigator.app.exitApp()`, or the Back button on Android 11 and older, and then reopening the app).
 - **iOS:** in-app callbacks (`onPrepared`, `onShown`, `onClick`, `onDismiss`) are delivered on cordova-ios 8 and other UIScene apps.
 - **iOS:** `engage` now replies, so `engage(success, error)` and promise wrappers settle on iOS.
 - **iOS:** a push deep link or in-app `actionId` containing a quote (or script text) broke, or could inject into, the JavaScript passed to the

@@ -44,11 +44,15 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     private static final String TAG = WE_CORE_CONSTANTS.TAG;
     private static CallbackContext eventChannelCallbackContext;
 
-    private Map<String, Object> pushOptions = new HashMap<String, Object>();
+    // Set once engage() has run in this process; plugin instances created later register themselves.
+    private static boolean sdkCallbacksEnabled = false;
 
-    private Map<String, Object> inappOptions = new HashMap<String, Object>();
+    // Options set from JS apply to the whole process, so a new plugin instance keeps them.
+    private static final Map<String, Object> pushOptions = new HashMap<String, Object>();
 
-    private Map<String, Object> globalOptions = new HashMap<String, Object>();
+    private static final Map<String, Object> inappOptions = new HashMap<String, Object>();
+
+    private static final Map<String, Object> globalOptions = new HashMap<String, Object>();
     private static String PENDING_PUSH_URI = null;
     private static JSONObject PENDING_PUSH_CUSTOM_DATA = null;
     private static boolean IS_PUSH_CALLBACK_PENDING = false;
@@ -129,6 +133,21 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
     @Override
     protected void pluginInitialize() {
         Log.d(TAG, "WebEngagePlugin initialized (cordova-plugin-webengage)");
+        // A recreated activity or a page loaded natively (navigator.app.loadUrl, InAppBrowser _self) creates a
+        // new instance. engage() runs once per launch, so the new instance takes over the SDK callbacks here.
+        if (sdkCallbacksEnabled) {
+            registerSdkCallbacks();
+        }
+    }
+
+    private void registerSdkCallbacks() {
+        try {
+            WebEngage.registerPushNotificationCallback(this);
+            WebEngage.registerInAppNotificationCallback(this);
+            WebEngage.registerWESecurityCallback(this);
+        } catch (Exception | LinkageError e) {
+            Logger.e(TAG, "SDK callbacks were not registered: " + e.getClass().getSimpleName());
+        }
     }
 
     @Override
@@ -140,9 +159,8 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
             // Intentionally never calls success()/error().
             eventChannelCallbackContext = callbackContext;
         } else if (WE_CORE_CONSTANTS.ENGAGE.equals(action)) {
-            WebEngage.registerPushNotificationCallback(this);
-            WebEngage.registerInAppNotificationCallback(this);
-            WebEngage.registerWESecurityCallback(this);
+            registerSdkCallbacks();
+            sdkCallbacksEnabled = true;
 
             if (args != null && args.length() > 0 && args.get(0) instanceof JSONObject) {
                 // Dynamic config
@@ -495,6 +513,19 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
             Logger.e(TAG, "Activity stop was not reported to WebEngage: " + e.getClass().getSimpleName());
         }
         super.onStop();
+    }
+
+    @Override
+    public void onDestroy() {
+        // The next plugin instance registers itself (pluginInitialize / engage). Remove this one, or the SDK
+        // keeps calling it and every push/in-app event reaches JS twice through the shared channel.
+        try {
+            WebEngage.unregisterPushNotificationCallback(this);
+            WebEngage.unregisterInAppNotificationCallback(this);
+        } catch (Exception | LinkageError e) {
+            Logger.e(TAG, "SDK callbacks were not unregistered: " + e.getClass().getSimpleName());
+        }
+        super.onDestroy();
     }
 
     @Override
