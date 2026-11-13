@@ -690,7 +690,7 @@ public class WebEngagePlugin extends CordovaPlugin implements PushNotificationCa
         return jsonObject1;
     }
 
-    // Replies success to the JS caller, with no value.
+    // Replies success to the JS caller; Cordova sends "OK" as the message (iOS sends the same).
     private void sendSuccessCallback(CallbackContext callbackContext) {
         callbackContext.success();
     }

@@ -534,9 +534,9 @@ static WebEngagePlugin *webEngagePlugin;
     }
 }
 
-// Replies success to the JS caller, with no value.
+// Replies success to the JS caller with "OK", the same value as Android.
 - (void)sendSuccessCallback:(CDVInvokedUrlCommand *)command {
-    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:WEG_SUCCESS_MESSAGE] callbackId:command.callbackId];
 }
 
 // Replies error to the JS caller, without a message.

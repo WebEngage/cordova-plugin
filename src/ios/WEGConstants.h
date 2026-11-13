@@ -43,6 +43,9 @@
 #define WEG_KEY_ERROR_RESPONSE @"errorResponse"
 #define WEG_ERROR_RESPONSE_UNAUTHORIZED @"401"
 
+// Success message sent to JS, the same text Cordova Android sends
+#define WEG_SUCCESS_MESSAGE @"OK"
+
 // Error messages sent to JS
 #define WEG_ERROR_SET_LOCATION_INVALID_NUMBER_FORMAT @"setLocation: invalid number format"
 #define WEG_ERROR_SET_LOCATION_INVALID_ARGUMENTS @"setLocation: invalid arguments"
